@@ -1,0 +1,203 @@
+Index: app/src/main/java/com/example/madcamp_1/MainActivity.kt
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>package com.example.madcamp_1\r\n\r\nimport android.os.Bundle\r\nimport androidx.activity.ComponentActivity\r\nimport androidx.activity.compose.setContent\r\nimport androidx.activity.enableEdgeToEdge\r\nimport androidx.compose.foundation.layout.fillMaxSize\r\nimport androidx.compose.foundation.layout.padding\r\nimport androidx.compose.material3.Scaffold\r\nimport androidx.compose.material3.Text\r\nimport androidx.compose.runtime.Composable\r\nimport androidx.compose.ui.Modifier\r\nimport androidx.compose.ui.tooling.preview.Preview\r\nimport com.example.madcamp_1.ui.theme.MadCamp_1Theme\r\n\r\nclass MainActivity : ComponentActivity() {\r\n    override fun onCreate(savedInstanceState: Bundle?) {\r\n        super.onCreate(savedInstanceState)\r\n        enableEdgeToEdge()\r\n        setContent {\r\n            MadCamp_1Theme {\r\n                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->\r\n                    Greeting(\r\n                        name = \"Android\",\r\n                        modifier = Modifier.padding(innerPadding)\r\n                    )\r\n                }\r\n            }\r\n        }\r\n    }\r\n}\r\n\r\n@Composable\r\nfun Greeting(name: String, modifier: Modifier = Modifier) {\r\n    Text(\r\n        text = \"Hello $name!\",\r\n        modifier = modifier\r\n    )\r\n}\r\n\r\n@Preview(showBackground = true)\r\n@Composable\r\nfun GreetingPreview() {\r\n    MadCamp_1Theme {\r\n        Greeting(\"Android\")\r\n    }\r\n}
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/app/src/main/java/com/example/madcamp_1/MainActivity.kt b/app/src/main/java/com/example/madcamp_1/MainActivity.kt
+--- a/app/src/main/java/com/example/madcamp_1/MainActivity.kt	(revision 181e9644e00385fb226b8f89b59b62cd2cc8c6ea)
++++ b/app/src/main/java/com/example/madcamp_1/MainActivity.kt	(date 1767943523221)
+@@ -3,45 +3,77 @@
+ import android.os.Bundle
+ import androidx.activity.ComponentActivity
+ import androidx.activity.compose.setContent
+-import androidx.activity.enableEdgeToEdge
+-import androidx.compose.foundation.layout.fillMaxSize
+ import androidx.compose.foundation.layout.padding
+-import androidx.compose.material3.Scaffold
+-import androidx.compose.material3.Text
++import androidx.compose.material.icons.Icons
++import androidx.compose.material.icons.filled.Home
++import androidx.compose.material.icons.filled.Search
++import androidx.compose.material.icons.filled.Settings
++import androidx.compose.material3.*
+ import androidx.compose.runtime.Composable
++import androidx.compose.runtime.getValue
+ import androidx.compose.ui.Modifier
+-import androidx.compose.ui.tooling.preview.Preview
++import androidx.navigation.NavHostController
++import androidx.navigation.compose.*
+ import com.example.madcamp_1.ui.theme.MadCamp_1Theme
+ 
+ class MainActivity : ComponentActivity() {
+     override fun onCreate(savedInstanceState: Bundle?) {
+         super.onCreate(savedInstanceState)
+-        enableEdgeToEdge()
+         setContent {
+             MadCamp_1Theme {
+-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+-                    Greeting(
+-                        name = "Android",
+-                        modifier = Modifier.padding(innerPadding)
+-                    )
+-                }
++                MainScreen()
+             }
+         }
+     }
+ }
+ 
+ @Composable
+-fun Greeting(name: String, modifier: Modifier = Modifier) {
+-    Text(
+-        text = "Hello $name!",
+-        modifier = modifier
+-    )
++fun MainScreen() {
++    val navController = rememberNavController() // 화면 조종사
++
++    Scaffold(
++        bottomBar = { BottomNavigationBar(navController) } // 하단 탭 바
++    ) { innerPadding ->
++        // 화면이 갈아 끼워지는 공간 (NavHost)
++        NavHost(
++            navController = navController,
++            startDestination = "home", // 시작 화면 주소
++            modifier = Modifier.padding(innerPadding)
++        ) {
++            composable("home") { HomeTab() }      // HomeTab.kt의 함수 호출
++            composable("search") { SearchTab() }  // SearchTab.kt의 함수 호출
++            composable("settings") { SettingsTab() } // SettingsTab.kt의 함수 호출
++        }
++    }
+ }
+ 
+-@Preview(showBackground = true)
+ @Composable
+-fun GreetingPreview() {
+-    MadCamp_1Theme {
+-        Greeting("Android")
++fun BottomNavigationBar(navController: NavHostController) {
++    // 현재 선택된 화면이 어디인지 파악하기 위함
++    val navBackStackEntry by navController.currentBackStackEntryAsState()
++    val currentRoute = navBackStackEntry?.destination?.route
++
++    NavigationBar {
++        // 홈 탭 버튼
++        NavigationBarItem(
++            selected = currentRoute == "home",
++            onClick = { navController.navigate("home") },
++            icon = { Icon(Icons.Default.Home, contentDescription = null) },
++            label = { Text("홈") }
++        )
++        // 검색 탭 버튼
++        NavigationBarItem(
++            selected = currentRoute == "search",
++            onClick = { navController.navigate("search") },
++            icon = { Icon(Icons.Default.Search, contentDescription = null) },
++            label = { Text("검색") }
++        )
++        // 설정 탭 버튼
++        NavigationBarItem(
++            selected = currentRoute == "settings",
++            onClick = { navController.navigate("settings") },
++            icon = { Icon(Icons.Default.Settings, contentDescription = null) },
++            label = { Text("설정") }
++        )
+     }
+ }
+\ No newline at end of file
+Index: app/build.gradle.kts
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>plugins {\r\n    alias(libs.plugins.android.application)\r\n    alias(libs.plugins.kotlin.android)\r\n    alias(libs.plugins.kotlin.compose)\r\n}\r\n\r\nandroid {\r\n    namespace = \"com.example.madcamp_1\"\r\n    compileSdk {\r\n        version = release(36)\r\n    }\r\n\r\n    defaultConfig {\r\n        applicationId = \"com.example.madcamp_1\"\r\n        minSdk = 24\r\n        targetSdk = 36\r\n        versionCode = 1\r\n        versionName = \"1.0\"\r\n\r\n        testInstrumentationRunner = \"androidx.test.runner.AndroidJUnitRunner\"\r\n    }\r\n\r\n    buildTypes {\r\n        release {\r\n            isMinifyEnabled = false\r\n            proguardFiles(\r\n                getDefaultProguardFile(\"proguard-android-optimize.txt\"),\r\n                \"proguard-rules.pro\"\r\n            )\r\n        }\r\n    }\r\n    compileOptions {\r\n        sourceCompatibility = JavaVersion.VERSION_11\r\n        targetCompatibility = JavaVersion.VERSION_11\r\n    }\r\n    kotlinOptions {\r\n        jvmTarget = \"11\"\r\n    }\r\n    buildFeatures {\r\n        compose = true\r\n    }\r\n}\r\n\r\ndependencies {\r\n    implementation(libs.androidx.core.ktx)\r\n    implementation(libs.androidx.lifecycle.runtime.ktx)\r\n    implementation(libs.androidx.activity.compose)\r\n    implementation(platform(libs.androidx.compose.bom))\r\n    implementation(libs.androidx.compose.ui)\r\n    implementation(libs.androidx.compose.ui.graphics)\r\n    implementation(libs.androidx.compose.ui.tooling.preview)\r\n    implementation(libs.androidx.compose.material3)\r\n    testImplementation(libs.junit)\r\n    androidTestImplementation(libs.androidx.junit)\r\n    androidTestImplementation(libs.androidx.espresso.core)\r\n    androidTestImplementation(platform(libs.androidx.compose.bom))\r\n    androidTestImplementation(libs.androidx.compose.ui.test.junit4)\r\n    debugImplementation(libs.androidx.compose.ui.tooling)\r\n    debugImplementation(libs.androidx.compose.ui.test.manifest)\r\n}
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/app/build.gradle.kts b/app/build.gradle.kts
+--- a/app/build.gradle.kts	(revision 181e9644e00385fb226b8f89b59b62cd2cc8c6ea)
++++ b/app/build.gradle.kts	(date 1767943708930)
+@@ -57,4 +57,5 @@
+     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
+     debugImplementation(libs.androidx.compose.ui.tooling)
+     debugImplementation(libs.androidx.compose.ui.test.manifest)
++    implementation("androidx.navigation:navigation-compose:2.8.5")
+ }
+\ No newline at end of file
+Index: app/src/main/java/com/example/madcamp_1/HomeTab.kt
+===================================================================
+diff --git a/app/src/main/java/com/example/madcamp_1/HomeTab.kt b/app/src/main/java/com/example/madcamp_1/HomeTab.kt
+new file mode 100644
+--- /dev/null	(date 1767943567172)
++++ b/app/src/main/java/com/example/madcamp_1/HomeTab.kt	(date 1767943567172)
+@@ -0,0 +1,23 @@
++package com.example.madcamp_1
++
++import androidx.compose.foundation.layout.*
++import androidx.compose.material3.Text
++import androidx.compose.runtime.Composable
++import androidx.compose.ui.Alignment
++import androidx.compose.ui.Modifier
++import androidx.compose.ui.unit.dp
++import androidx.compose.ui.text.font.FontWeight
++import androidx.compose.ui.unit.sp
++
++@Composable
++fun HomeTab() {
++    Column(
++        modifier = Modifier.fillMaxSize(),
++        verticalArrangement = Arrangement.Center,
++        horizontalAlignment = Alignment.CenterHorizontally
++    ) {
++        Text(text = "🏠", fontSize = 50.sp)
++        Spacer(modifier = Modifier.height(16.dp))
++        Text(text = "홈 화면입니다", fontWeight = FontWeight.Bold)
++    }
++}
+\ No newline at end of file
+Index: app/src/main/java/com/example/madcamp_1/SettingsTab.kt
+===================================================================
+diff --git a/app/src/main/java/com/example/madcamp_1/SettingsTab.kt b/app/src/main/java/com/example/madcamp_1/SettingsTab.kt
+new file mode 100644
+--- /dev/null	(date 1767943618463)
++++ b/app/src/main/java/com/example/madcamp_1/SettingsTab.kt	(date 1767943618463)
+@@ -0,0 +1,14 @@
++package com.example.madcamp_1
++
++import androidx.compose.foundation.layout.*
++import androidx.compose.material3.Text
++import androidx.compose.runtime.Composable
++import androidx.compose.ui.Alignment
++import androidx.compose.ui.Modifier
++
++@Composable
++fun SettingsTab() {
++    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
++        Text(text = "⚙️ 설정 화면")
++    }
++}
+\ No newline at end of file
+Index: app/src/main/java/com/example/madcamp_1/SearchTab.kt
+===================================================================
+diff --git a/app/src/main/java/com/example/madcamp_1/SearchTab.kt b/app/src/main/java/com/example/madcamp_1/SearchTab.kt
+new file mode 100644
+--- /dev/null	(date 1767943585487)
++++ b/app/src/main/java/com/example/madcamp_1/SearchTab.kt	(date 1767943585487)
+@@ -0,0 +1,15 @@
++package com.example.madcamp_1
++
++import androidx.compose.foundation.layout.*
++import androidx.compose.material3.Text
++import androidx.compose.runtime.Composable
++import androidx.compose.ui.Alignment
++import androidx.compose.ui.Modifier
++import androidx.compose.ui.unit.dp
++
++@Composable
++fun SearchTab() {
++    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
++        Text(text = "🔍 검색 화면")
++    }
++}
+\ No newline at end of file
