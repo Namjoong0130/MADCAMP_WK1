@@ -4,8 +4,10 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.madcamp_1.ui.screen.initial.InitScreen
-import com.example.madcamp_1.ui.screen.login.LoginScreen // LoginScreen 파일이 있어야 함
+import com.example.madcamp_1.ui.screen.initial.InitRoute
+import com.example.madcamp_1.ui.screen.login.LoginRoute
+import com.example.madcamp_1.ui.screen.register.RegisterRoute
+//import com.example.madcamp_1.ui.screen.dashboard.DashboardRoute
 
 @Composable
 fun NavGraph() {
@@ -13,22 +15,47 @@ fun NavGraph() {
 
     NavHost(
         navController = navController,
-        startDestination = "init" // 시작 화면은 init
+        startDestination = "init"
     ) {
-        // 초기 화면 설정
+        // 1. 초기 화면 (3초 대기)
         composable("init") {
-            InitScreen(onTimeout = {
-                // 3초 뒤에 실행될 로직: login 화면으로 이동
-                // popUpTo("init") { inclusive = true } 를 붙이면 뒤로가기를 눌러도 다시 초기화면으로 안 옵니다.
-                navController.navigate("login") {
-                    popUpTo("init") { inclusive = true }
+            InitRoute(
+                onNavigateToLogin = {
+                    navController.navigate("login") {
+                        popUpTo("init") { inclusive = true }
+                    }
                 }
-            })
+            )
         }
 
-        // 로그인 화면 설정
+        // 2. 로그인 화면
         composable("login") {
-            LoginScreen() // LoginScreen.kt에 정의된 함수 호출
+            LoginRoute(
+                // 회원가입 버튼 클릭 시 'register' 주소로 이동
+                onNavigateToRegister = {
+                    navController.navigate("register")
+                },
+                onLoginSuccess = {
+                    navController.navigate("dashboard") {
+                        popUpTo("login") { inclusive = true }
+                    }
+                }
+            )
         }
+
+        // 3. 회원가입 화면 (새로 추가/구체화된 부분)
+        composable("register") {
+            RegisterRoute(
+                onBackToLogin = {
+                    // '돌아가기' 혹은 '가입 완료' 시 현재 화면을 닫고 이전(로그인)으로 복귀
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        // 4. 메인 대시보드
+        /*composable("dashboard") {
+            DashboardRoute()
+        }*/
     }
 }
