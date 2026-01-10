@@ -6,6 +6,8 @@ import com.google.android.gms.maps.model.LatLng
 
 @Composable
 fun InfoRoute(
+    // ★ 이 부분을 추가해야 MainScreen의 빨간 줄이 사라집니다!
+    onNavigateToDetail: (String) -> Unit,
     viewModel: InfoViewModel = viewModel()
 ) {
     val videoId by viewModel.videoId.collectAsState()
