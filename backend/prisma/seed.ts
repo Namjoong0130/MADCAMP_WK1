@@ -1,7 +1,20 @@
-// backend/prisma/seed.ts
-import { PrismaClient, Platform, Visibility, UserRole, NotificationType, ShareEntityType } from "@prisma/client";
+import "dotenv/config";
+import {
+  PrismaClient,
+  Platform,
+  Visibility,
+  UserRole,
+  NotificationType,
+  ShareEntityType,
+} from "../src/generated/prisma/client";
 
-const prisma = new PrismaClient();
+import { PrismaMariaDb } from "@prisma/adapter-mariadb";
+
+const prisma = new PrismaClient({
+  adapter: new PrismaMariaDb(process.env.DATABASE_URL!),
+});
+
+
 
 /**
  * seed에서 "고정 id"를 쓰면:
