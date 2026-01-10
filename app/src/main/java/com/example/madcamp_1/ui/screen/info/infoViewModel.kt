@@ -6,7 +6,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-// 역대 전적을 위한 데이터 모델
+// [데이터 모델]
 data class MatchRecord(
     val year: String,
     val winner: String,
@@ -15,7 +15,6 @@ data class MatchRecord(
 )
 
 class InfoViewModel : ViewModel() {
-
     private val _videoId = MutableStateFlow("")
     val videoId: StateFlow<String> = _videoId.asStateFlow()
 
@@ -25,42 +24,84 @@ class InfoViewModel : ViewModel() {
     private val _stadiumName = MutableStateFlow("")
     val stadiumName: StateFlow<String> = _stadiumName.asStateFlow()
 
-    // [변경] 일정 대신 역대 전적 리스트 관리
     private val _historyRecords = MutableStateFlow<List<MatchRecord>>(emptyList())
     val historyRecords: StateFlow<List<MatchRecord>> = _historyRecords.asStateFlow()
 
     fun loadDataByCategory(category: String) {
         when (category) {
             "축구" -> {
-                _videoId.value = "dQw4w9WgXcQ" // 실제 ID로 변경
+                _videoId.value = "n_McfqkAI1U"
                 _stadiumLocation.value = LatLng(36.3740, 127.3650)
-                _stadiumName.value = "대운동장"
+                _stadiumName.value = "KAIST 대운동장"
                 _historyRecords.value = listOf(
-                    MatchRecord("2025", "KAIST", "3 : 1", "MVP: 홍길동"),
-                    MatchRecord("2024", "POSTECH", "0 : 0", "무승부"),
-                    MatchRecord("2023", "KAIST", "2 : 1", "역전승")
+                    MatchRecord("2025", "KAIST", "3 : 2", "홈승"),
+                    MatchRecord("2024", "KAIST", "1 : 0", "원정승"),
+                    MatchRecord("2023", "KAIST", "1 : 0", "홈승")
                 )
             }
             "해킹" -> {
-                _videoId.value = "videoId_hacking"
-                _stadiumLocation.value = LatLng(36.3700, 127.3620)
-                _stadiumName.value = "정보전자공학동"
+                _videoId.value = "9bZkp7q19f0"
+                _stadiumLocation.value = LatLng(36.3708, 127.3626)
+                _stadiumName.value = "정보전자공학동(E3)"
                 _historyRecords.value = listOf(
-                    MatchRecord("2025", "KAIST", "1500pt", "All Kill"),
-                    MatchRecord("2024", "KAIST", "1200pt", "우승")
+                    MatchRecord("2025", "KAIST", "13100 : 11800", "홈승"),
+                    MatchRecord("2024", "KAIST", "1850 : 1000", "원정승"),
+                    MatchRecord("2023", "KAIST", "13782 : 10382", "홈승")
                 )
             }
-            "AI" -> {
-                _videoId.value = "videoId_ai"
-                _stadiumLocation.value = LatLng(36.3710, 127.3630)
-                _stadiumName.value = "학술문화관"
+            "인공지능" -> {
+                _videoId.value = "KkeNxIb1vkM"
+                _stadiumLocation.value = LatLng(36.3712, 127.3638)
+                _stadiumName.value = "학술문화관(E9) 양승택홀"
                 _historyRecords.value = listOf(
-                    MatchRecord("2025", "POSTECH", "Acc 98%", "딥러닝 세션 우승"),
-                    MatchRecord("2024", "KAIST", "Acc 95%", "전략 우승")
+                    MatchRecord("2025", "KAIST", "3 : 0", "홈승"),
+                    MatchRecord("2024", "POSTECH", "2 : 3", "홈승"),
+                    MatchRecord("2023", "POSTECH", "1 : 4", "원정승")
+                )
+            }
+            "E-sports" -> {
+                _videoId.value = "PWuJxT7P5fM"
+                _stadiumLocation.value = LatLng(36.3685, 127.3625)
+                _stadiumName.value = "KAIST 대강당(E15)"
+                _historyRecords.value = listOf(
+                    MatchRecord("2025", "KAIST", "2 : 0", "홈승"),
+                    MatchRecord("2024", "KAIST", "2 : 1", "원정승"),
+                    MatchRecord("2023", "KAIST", "2 : 0", "홈승")
+                )
+            }
+            "야구" -> {
+                _videoId.value = "Tg535gEwFa4"
+                _stadiumLocation.value = LatLng(36.3705, 127.3600)
+                _stadiumName.value = "KAIST 야구장"
+                _historyRecords.value = listOf(
+                    MatchRecord("2025", "POSTECH", "4 : 8", "원정승"),
+                    MatchRecord("2024", "KAIST", "14 : 0", "원정승"),
+                    MatchRecord("2023", "KAIST", "6 : 3", "홈승")
+                )
+            }
+            "과학퀴즈" -> {
+                _videoId.value = "yS9YqZGMqA8"
+                _stadiumLocation.value = LatLng(36.3712, 127.3638)
+                _stadiumName.value = "학술문화관(E9) 양승택홀"
+                _historyRecords.value = listOf(
+                    MatchRecord("2025", "POSTECH", "85 : 105", "원정승"),
+                    MatchRecord("2024", "KAIST", "275 : 170", "원정승"),
+                    MatchRecord("2023", "KAIST", "44 : 16", "홈승")
+                )
+            }
+            "농구" -> {
+                _videoId.value = "-WR3SbVs2rk"
+                _stadiumLocation.value = LatLng(36.3702, 127.3620)
+                _stadiumName.value = "류근철 스포츠 컴플렉스(N14)"
+                _historyRecords.value = listOf(
+                    MatchRecord("2025", "KAIST", "75 : 54", "홈승"),
+                    MatchRecord("2024", "KAIST", "67 : 51", "원정승"),
+                    MatchRecord("2023", "KAIST", "65 : 45", "홈승")
                 )
             }
             else -> {
                 _videoId.value = ""
+                _stadiumName.value = "경기장 정보 없음"
                 _historyRecords.value = emptyList()
             }
         }

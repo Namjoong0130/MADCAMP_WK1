@@ -1,5 +1,6 @@
 package com.example.madcamp_1.ui.screen.schedule
 
+import android.annotation.SuppressLint
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -9,86 +10,115 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-
+@SuppressLint("UnusedBoxWithConstraintsScope")
 @Composable
-fun ScheduleScreen(events: List<ScheduleEvent>) {
+fun ScheduleScreen(
+    events: List<ScheduleEvent>,
+    userName: String,
+    userSchool: String,
+    pScore: Int,
+    kScore: Int
+) {
     val days = listOf("1일차", "2일차", "3일차")
-    val times = (9..24).toList()
-    val hourHeight = 60.dp // 1시간당 높이 고정
+    val startHour = 9
+    val endHour = 24
+    val totalHours = endHour - startHour
 
-    // 스크롤 상태 기억
-    val scrollState = rememberScrollState()
+    // 학교별 메인 컬러 선정
+    val schoolColor = if (userSchool == "POSTECH") Color(0xFFD32F2F) else Color(0xFF1976D2)
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        Text("일정", style = MaterialTheme.typography.headlineSmall)
-        Spacer(modifier = Modifier.height(16.dp))
 
-        // 전체 테이블 컨테이너
-        Column(modifier = Modifier.fillMaxSize().border(1.dp, Color.LightGray)) {
-
-            // 1. 고정 헤더 (요일 표시)
-            Row(modifier = Modifier.fillMaxWidth().background(Color(0xFFF5F5F5))) {
-                Spacer(modifier = Modifier.width(30.dp)) // 시간 열 너비만큼 비우기
-                days.forEach { day ->
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(30.dp)
-                            .border(0.5.dp, Color.LightGray),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(day, fontSize = 12.sp)
-                    }
-                }
+        // --- 상단 헤더 영역 ---
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(bottom = 20.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // 사용자 및 학교 정보
+            Column {
+                Text(text = userName, style = MaterialTheme.typography.bodyLarge)
+                Text(
+                    text = userSchool,
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = schoolColor
+                )
             }
 
-            // 2. 스크롤 가능한 내용 영역
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(scrollState) // 세로 스크롤 활성화
+            // 점수판
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = Color(0xFFF0F0F0),
+                modifier = Modifier.padding(start = 16.dp)
             ) {
-                // 시간 표시열
-                Column(modifier = Modifier.width(30.dp)) {
-                    times.forEach { time ->
-                        Box(
-                            modifier = Modifier
-                                .height(hourHeight)
-                                .fillMaxWidth(),
-                            contentAlignment = Alignment.TopCenter
-                        ) {
-                            Text("$time", fontSize = 10.sp, color = Color.Gray)
+                Row(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text("POSTECH ", color = Color(0xFFD32F2F), fontWeight = FontWeight.Bold)
+                    Text("$pScore : $kScore", fontSize = 20.sp, fontWeight = FontWeight.ExtraBold)
+                    Text(" KAIST", color = Color(0xFF1976D2), fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+
+        // --- 일정표 영역 ---
+        BoxWithConstraints(
+            modifier = Modifier
+                .fillMaxSize()
+                .border(1.dp, Color.LightGray, RoundedCornerShape(12.dp))
+        ) {
+            val totalHeight = maxHeight
+            val hourHeight = (totalHeight - 30.dp) / totalHours // 헤더 제외 높이 계산
+
+            Column {
+                // 요일 헤더
+                Row(modifier = Modifier.fillMaxWidth().height(30.dp).background(Color(0xFFF9F9F9))) {
+                    Spacer(modifier = Modifier.width(35.dp))
+                    days.forEach { day ->
+                        Box(modifier = Modifier.weight(1f).fillMaxHeight().border(0.2.dp, Color.LightGray), contentAlignment = Alignment.Center) {
+                            Text(day, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
 
-                // 요일별 이벤트 열
-                days.forEachIndexed { dIndex, _ ->
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(hourHeight * times.size) // 전체 높이를 시간 수만큼 지정
-                            .border(0.5.dp, Color.LightGray)
-                    ) {
-                        // 해당 요일의 이벤트 필터링
-                        events.filter { it.dayIndex == dIndex }.forEach { event ->
-                            // 시작 시간 기준 (9시 시작 기준 계산)
-                            val topMargin = (event.startHour - 9) * hourHeight.value
+                // 시간 및 이벤트 본문
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    // 시간 축
+                    Column(modifier = Modifier.width(35.dp)) {
+                        (startHour..endHour).forEach { hour ->
+                            Box(modifier = Modifier.height(hourHeight).fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
+                                Text("$hour", fontSize = 10.sp, color = Color.Gray)
+                            }
+                        }
+                    }
 
-                            Box(
-                                modifier = Modifier
-                                    .padding(top = topMargin.dp, start = 2.dp, end = 2.dp)
-                                    .fillMaxWidth()
-                                    .height((event.duration * hourHeight.value).dp)
-                                    .background(event.color, RoundedCornerShape(4.dp))
-                                    .padding(4.dp)
-                            ) {
-                                Text(event.name, fontSize = 12.sp, color = Color.White)
+                    // 요일별 컬럼
+                    days.forEachIndexed { dIndex, _ ->
+                        Box(modifier = Modifier.weight(1f).height(hourHeight * totalHours).border(0.2.dp, Color.LightGray)) {
+                            events.filter { it.dayIndex == dIndex }.forEach { event ->
+                                val topMargin = (event.startHour - startHour) * hourHeight.value
+                                val eventHeight = event.duration * hourHeight.value
+
+                                Surface(
+                                    modifier = Modifier
+                                        .padding(top = topMargin.dp, start = 2.dp, end = 2.dp)
+                                        .fillMaxWidth()
+                                        .height(eventHeight.dp),
+                                    color = event.color,
+                                    shape = RoundedCornerShape(4.dp),
+                                    shadowElevation = 1.dp
+                                ) {
+                                    Text(
+                                        text = event.name,
+                                        modifier = Modifier.padding(4.dp),
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        lineHeight = 13.sp
+                                    )
+                                }
                             }
                         }
                     }
