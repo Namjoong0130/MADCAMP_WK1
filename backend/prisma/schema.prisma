@@ -1,10 +1,9 @@
 generator client {
-  provider = "prisma-client"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "mysql"
-  url      = env("DATABASE_URL")
 }
 
 enum UserRole {
@@ -19,7 +18,7 @@ enum Platform {
 }
 
 enum Visibility {
-  PUBLIC      // 전체 공개
+  PUBLIC // 전체 공개
   SCHOOL_ONLY // 같은 학교만(필요 시)
 }
 
@@ -45,78 +44,78 @@ enum ShareEntityType {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  email         String    @unique
-  passwordHash  String
-  nickname      String
-  role          UserRole  @default(USER)
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  nickname     String
+  role         UserRole @default(USER)
 
-  schoolId      String?
-  school        School?   @relation(fields: [schoolId], references: [id])
+  schoolId String?
+  school   School? @relation(fields: [schoolId], references: [id])
 
   profileImageUrl String?
 
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  deletedAt     DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
   posts         Post[]
   postLikes     PostLike[]
   comments      Comment[]
   deviceTokens  DeviceToken[]
   notifications Notification[]
-  media         Media[]   @relation("UserMedia")
+  media         Media[]        @relation("UserMedia")
   refreshTokens RefreshToken[]
 }
 
 model RefreshToken {
-  id         String   @id @default(cuid())
-  userId     String
-  user       User     @relation(fields: [userId], references: [id])
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
 
-  tokenHash  String   @unique
-  expiresAt  DateTime
-  createdAt  DateTime @default(now())
-  revokedAt  DateTime?
+  tokenHash String    @unique
+  expiresAt DateTime
+  createdAt DateTime  @default(now())
+  revokedAt DateTime?
 
   @@index([userId])
 }
 
 model School {
-  id        String   @id @default(cuid())
-  name      String   @unique
+  id        String  @id @default(cuid())
+  name      String  @unique
   shortName String?
   logoUrl   String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  users     User[]
-  schedulesAsHome Schedule[] @relation("HomeSchool")
-  schedulesAsAway Schedule[] @relation("AwaySchool")
+  users           User[]
+  schedulesAsHome Schedule[]    @relation("HomeSchool")
+  schedulesAsAway Schedule[]    @relation("AwaySchool")
   cheerMethods    CheerMethod[]
 }
 
 model Post {
-  id          String     @id @default(cuid())
-  authorId    String
-  author      User       @relation(fields: [authorId], references: [id])
+  id       String @id @default(cuid())
+  authorId String
+  author   User   @relation(fields: [authorId], references: [id])
 
-  title       String
-  content     String
-  visibility  Visibility @default(PUBLIC)
+  title      String
+  content    String
+  visibility Visibility @default(PUBLIC)
 
-  likeCount   Int        @default(0)
-  commentCount Int       @default(0)
+  likeCount    Int @default(0)
+  commentCount Int @default(0)
 
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-  deletedAt   DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
-  likes       PostLike[]
-  comments    Comment[]
-  medias      PostMedia[]
-  tags        PostTag[]
+  likes    PostLike[]
+  comments Comment[]
+  medias   PostMedia[]
+  tags     PostTag[]
 
   @@index([authorId])
   @@index([createdAt])
@@ -124,10 +123,10 @@ model Post {
 }
 
 model PostLike {
-  userId   String
-  postId   String
-  user     User @relation(fields: [userId], references: [id])
-  post     Post @relation(fields: [postId], references: [id])
+  userId    String
+  postId    String
+  user      User     @relation(fields: [userId], references: [id])
+  post      Post     @relation(fields: [postId], references: [id])
   createdAt DateTime @default(now())
 
   @@id([userId, postId])
@@ -135,20 +134,20 @@ model PostLike {
 }
 
 model Comment {
-  id        String   @id @default(cuid())
-  postId    String
-  authorId  String
-  post      Post     @relation(fields: [postId], references: [id])
-  author    User     @relation(fields: [authorId], references: [id])
+  id       String @id @default(cuid())
+  postId   String
+  authorId String
+  post     Post   @relation(fields: [postId], references: [id])
+  author   User   @relation(fields: [authorId], references: [id])
 
-  content   String
+  content String
 
-  parentId  String?
-  parent    Comment? @relation("CommentThread", fields: [parentId], references: [id])
-  replies   Comment[] @relation("CommentThread")
+  parentId String?
+  parent   Comment?  @relation("CommentThread", fields: [parentId], references: [id])
+  replies  Comment[] @relation("CommentThread")
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
   @@index([postId])
@@ -157,14 +156,14 @@ model Comment {
 }
 
 model Schedule {
-  id          String         @id @default(cuid())
+  id          String  @id @default(cuid())
   title       String
   description String?
 
-  startAt     DateTime
-  endAt       DateTime?
+  startAt DateTime
+  endAt   DateTime?
 
-  status      ScheduleStatus @default(SCHEDULED)
+  status ScheduleStatus @default(SCHEDULED)
 
   locationName String?
   address      String?
@@ -176,81 +175,76 @@ model Schedule {
   homeSchool   School? @relation("HomeSchool", fields: [homeSchoolId], references: [id])
   awaySchool   School? @relation("AwaySchool", fields: [awaySchoolId], references: [id])
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  deletedAt   DateTime?
-
-  shareLinks  ShareLink[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
   @@index([startAt])
   @@index([updatedAt])
 }
 
 model InfoCategory {
-  id        String  @id @default(cuid())
-  name      String  @unique
-  sortOrder Int     @default(0)
+  id        String @id @default(cuid())
+  name      String @unique
+  sortOrder Int    @default(0)
 
-  infos     Info[]
+  infos Info[]
 }
 
 model Info {
-  id          String @id @default(cuid())
-  categoryId  String?
-  category    InfoCategory? @relation(fields: [categoryId], references: [id])
+  id         String        @id @default(cuid())
+  categoryId String?
+  category   InfoCategory? @relation(fields: [categoryId], references: [id])
 
-  title       String
-  content     String
-  sourceUrl   String?
+  title     String
+  content   String
+  sourceUrl String?
 
   locationName String?
   address      String?
   lat          Float?
   lng          Float?
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  deletedAt   DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
-  tags        InfoTag[]
-  shareLinks  ShareLink[]
+  tags InfoTag[]
 
   @@index([categoryId])
   @@index([updatedAt])
 }
 
 model CheerMethod {
-  id        String  @id @default(cuid())
-  schoolId  String?
-  school    School? @relation(fields: [schoolId], references: [id])
+  id       String  @id @default(cuid())
+  schoolId String?
+  school   School? @relation(fields: [schoolId], references: [id])
 
-  title     String
-  content   String
-  mediaUrl  String?
+  title    String
+  content  String
+  mediaUrl String?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
   deletedAt DateTime?
-
-  shareLinks ShareLink[]
 
   @@index([schoolId])
 }
 
 model Tag {
-  id        String @id @default(cuid())
-  name      String @unique
+  id        String   @id @default(cuid())
+  name      String   @unique
   createdAt DateTime @default(now())
 
-  postTags  PostTag[]
-  infoTags  InfoTag[]
+  postTags PostTag[]
+  infoTags InfoTag[]
 }
 
 model PostTag {
   postId String
   tagId  String
-  post   Post @relation(fields: [postId], references: [id])
-  tag    Tag  @relation(fields: [tagId], references: [id])
+  post   Post   @relation(fields: [postId], references: [id])
+  tag    Tag    @relation(fields: [tagId], references: [id])
 
   @@id([postId, tagId])
   @@index([tagId])
@@ -259,8 +253,8 @@ model PostTag {
 model InfoTag {
   infoId String
   tagId  String
-  info   Info @relation(fields: [infoId], references: [id])
-  tag    Tag  @relation(fields: [tagId], references: [id])
+  info   Info   @relation(fields: [infoId], references: [id])
+  tag    Tag    @relation(fields: [tagId], references: [id])
 
   @@id([infoId, tagId])
   @@index([tagId])
@@ -271,14 +265,14 @@ model Media {
   uploaderId String?
   uploader   User?   @relation("UserMedia", fields: [uploaderId], references: [id])
 
-  url        String
-  mimeType   String?
-  size       Int?
-  width      Int?
-  height     Int?
+  url      String
+  mimeType String?
+  size     Int?
+  width    Int?
+  height   Int?
 
-  createdAt  DateTime @default(now())
-  deletedAt  DateTime?
+  createdAt DateTime  @default(now())
+  deletedAt DateTime?
 
   postMedias PostMedia[]
 
@@ -288,8 +282,8 @@ model Media {
 model PostMedia {
   postId  String
   mediaId String
-  post    Post  @relation(fields: [postId], references: [id])
-  media   Media @relation(fields: [mediaId], references: [id])
+  post    Post   @relation(fields: [postId], references: [id])
+  media   Media  @relation(fields: [mediaId], references: [id])
 
   sortOrder Int @default(0)
 
@@ -298,44 +292,43 @@ model PostMedia {
 }
 
 model DeviceToken {
-  id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
 
-  token     String   @unique
-  platform  Platform
+  token    String   @unique
+  platform Platform
 
   lastSeenAt DateTime?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 
   @@index([userId])
 }
 
 model Notification {
-  id        String           @id @default(cuid())
-  userId    String
-  user      User             @relation(fields: [userId], references: [id])
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
 
-  type      NotificationType
-  title     String
-  body      String
-  dataJson  String?          // 라우팅/파라미터 등 JSON 문자열로 저장(간단히)
+  type     NotificationType
+  title    String
+  body     String
+  dataJson String? // 라우팅/파라미터 등 JSON 문자열로 저장(간단히)
 
   readAt    DateTime?
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
 
   @@index([userId, createdAt])
 }
 
 model ShareLink {
-  id          String          @id @default(cuid())
-  entityType  ShareEntityType
-  entityId    String
-  slug        String          @unique
-  createdAt   DateTime        @default(now())
-  expiresAt   DateTime?  
-
+  id         String          @id @default(cuid())
+  entityType ShareEntityType
+  entityId   String
+  slug       String          @unique
+  createdAt  DateTime        @default(now())
+  expiresAt  DateTime?
 
   @@index([entityType, entityId])
 }
