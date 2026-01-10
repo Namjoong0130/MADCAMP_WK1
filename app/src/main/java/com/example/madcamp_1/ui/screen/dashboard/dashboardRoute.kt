@@ -4,7 +4,10 @@ import androidx.compose.runtime.*
 import androidx.lifecycle.viewmodel.compose.viewModel
 
 @Composable
-fun DashboardRoute(viewModel: DashboardViewModel = viewModel()) {
+fun DashboardRoute(
+    onNavigateToWrite: () -> Unit,
+    viewModel: DashboardViewModel = viewModel()
+) {
     val searchText by viewModel.searchText.collectAsState()
     val selectedTag by viewModel.selectedTag.collectAsState()
     val posts by viewModel.filteredPosts.collectAsState(initial = emptyList())
@@ -14,6 +17,7 @@ fun DashboardRoute(viewModel: DashboardViewModel = viewModel()) {
         selectedTag = selectedTag,
         posts = posts,
         onSearchChange = { viewModel.onSearchTextChange(it) },
-        onTagSelect = { viewModel.onTagSelected(it) }
+        onTagSelect = { viewModel.onTagSelected(it) },
+        onNavigateToWrite = onNavigateToWrite
     )
 }

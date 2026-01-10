@@ -4,7 +4,6 @@ import androidx.lifecycle.ViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
-
 // 게시글 데이터 클래스
 data class Post(
     val id: Int,
@@ -12,7 +11,8 @@ data class Post(
     val content: String,
     val tag: String,
     val time: String,
-    val author: String = "익명"
+    val author: String = "익명",
+    val imageUri: String? = null // 이미지 경로 추가
 )
 
 class DashboardViewModel : ViewModel() {
@@ -42,4 +42,7 @@ class DashboardViewModel : ViewModel() {
     // 2. 이벤트 함수
     fun onSearchTextChange(text: String) { _searchText.value = text }
     fun onTagSelected(tag: String) { _selectedTag.value = tag }
+    fun addPost(post: Post) {
+        _allPosts.value = listOf(post) + _allPosts.value
+    }
 }
