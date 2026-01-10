@@ -75,4 +75,10 @@ dependencies {
 
     // (선택) 이미지 로딩을 위해 Coil이 필요할 수 있습니다.
     implementation("io.coil-kt:coil-compose:2.6.0")
+    // Google Maps for Compose
+    implementation("com.google.maps.android:maps-compose:4.3.3")
+    implementation("com.google.android.gms:play-services-maps:19.0.0")
+
+    // YouTube Player (Compose와 호환이 좋은 라이브러리)
+    implementation("com.pierfrancescosoffritti.androidyoutubeplayer:core:12.1.0")
 }
