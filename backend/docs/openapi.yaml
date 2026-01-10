@@ -1,0 +1,1467 @@
+openapi: 3.0.3
+info:
+  title: Madcamp WK1 Backend API
+  version: 1.0.0
+  description: >
+    Prisma schema 기반 API 명세서.
+    인증은 Bearer accessToken, 토큰 재발급은 refreshToken 사용.
+
+servers:
+  - url: /api
+    description: Local API base
+
+tags:
+  - name: Auth
+  - name: Me
+  - name: Schools
+  - name: Schedules
+  - name: Info
+  - name: Tags
+  - name: CheerMethods
+  - name: Posts
+  - name: Comments
+  - name: Media
+  - name: DeviceTokens
+  - name: Notifications
+  - name: ShareLinks
+
+security:
+  - bearerAuth: []
+
+paths:
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: 회원가입
+      security: [] # public
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: 로그인
+      security: [] # public
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      summary: 토큰 재발급
+      security: [] # public (refresh token으로 갱신)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RefreshResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: 로그아웃(리프레시 토큰 폐기)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LogoutRequest"
+      responses:
+        "204":
+          description: No Content
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /me:
+    get:
+      tags: [Me]
+      summary: 내 정보 조회
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MeResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    patch:
+      tags: [Me]
+      summary: 내 정보 수정(닉네임/프로필 이미지)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MeUpdateRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MeResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /schools:
+    get:
+      tags: [Schools]
+      summary: 학교 목록
+      security: [] # public
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SchoolListResponse"
+
+  /schools/{id}:
+    get:
+      tags: [Schools]
+      summary: 학교 상세
+      security: [] # public
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+        - name: include
+          in: query
+          required: false
+          description: "쉼표로 구분: cheerMethods,schedules"
+          schema:
+            type: string
+            example: cheerMethods,schedules
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SchoolDetailResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /schedules:
+    get:
+      tags: [Schedules]
+      summary: 일정 목록(필터/기간)
+      security: [] # public
+      parameters:
+        - name: from
+          in: query
+          required: false
+          schema: { type: string, format: date }
+        - name: to
+          in: query
+          required: false
+          schema: { type: string, format: date }
+        - name: schoolId
+          in: query
+          required: false
+          schema: { type: string }
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/ScheduleStatus"
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScheduleListResponse"
+    post:
+      tags: [Schedules]
+      summary: 일정 생성(ADMIN)
+      description: "권한 체크: ADMIN"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ScheduleCreateRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScheduleResponse"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /schedules/{id}:
+    get:
+      tags: [Schedules]
+      summary: 일정 상세
+      security: [] # public
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScheduleResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      tags: [Schedules]
+      summary: 일정 수정(ADMIN)
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ScheduleUpdateRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScheduleResponse"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    delete:
+      tags: [Schedules]
+      summary: 일정 삭제(ADMIN, soft delete 권장)
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+      responses:
+        "204":
+          description: No Content
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /info-categories:
+    get:
+      tags: [Info]
+      summary: 정보 카테고리 목록
+      security: [] # public
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InfoCategoryListResponse"
+
+  /infos:
+    get:
+      tags: [Info]
+      summary: 정보 목록(카테고리/태그/근처)
+      security: [] # public
+      parameters:
+        - name: categoryId
+          in: query
+          required: false
+          schema: { type: string }
+        - name: tag
+          in: query
+          required: false
+          schema: { type: string }
+        - name: nearLat
+          in: query
+          required: false
+          schema: { type: number, format: float }
+        - name: nearLng
+          in: query
+          required: false
+          schema: { type: number, format: float }
+        - name: radiusKm
+          in: query
+          required: false
+          schema: { type: number, format: float }
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InfoListResponse"
+    post:
+      tags: [Info]
+      summary: 정보 생성(ADMIN)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InfoCreateRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InfoResponse"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /infos/{id}:
+    get:
+      tags: [Info]
+      summary: 정보 상세
+      security: [] # public
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InfoResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      tags: [Info]
+      summary: 정보 수정(ADMIN)
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InfoUpdateRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InfoResponse"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    delete:
+      tags: [Info]
+      summary: 정보 삭제(ADMIN, soft delete 권장)
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+      responses:
+        "204":
+          description: No Content
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /tags:
+    get:
+      tags: [Tags]
+      summary: 태그 목록
+      security: [] # public
+      parameters:
+        - name: scope
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [post, info, all]
+            default: all
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TagListResponse"
+
+  /cheer-methods:
+    get:
+      tags: [CheerMethods]
+      summary: 응원법 목록
+      security: [] # public
+      parameters:
+        - name: schoolId
+          in: query
+          required: false
+          schema: { type: string }
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheerMethodListResponse"
+    post:
+      tags: [CheerMethods]
+      summary: 응원법 생성(ADMIN)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CheerMethodCreateRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheerMethodResponse"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /cheer-methods/{id}:
+    get:
+      tags: [CheerMethods]
+      summary: 응원법 상세
+      security: [] # public
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheerMethodResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      tags: [CheerMethods]
+      summary: 응원법 수정(ADMIN)
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CheerMethodUpdateRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheerMethodResponse"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    delete:
+      tags: [CheerMethods]
+      summary: 응원법 삭제(ADMIN)
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+      responses:
+        "204":
+          description: No Content
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /posts:
+    get:
+      tags: [Posts]
+      summary: 게시글 목록(visibility/학교/태그/정렬)
+      security: [] # public(단, SCHOOL_ONLY는 서버에서 권한 처리)
+      parameters:
+        - name: visibility
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/Visibility"
+        - name: schoolId
+          in: query
+          required: false
+          schema: { type: string }
+        - name: tag
+          in: query
+          required: false
+          schema: { type: string }
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [recent]
+            default: recent
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PostListResponse"
+    post:
+      tags: [Posts]
+      summary: 게시글 작성(로그인)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PostCreateRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PostResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /posts/{id}:
+    get:
+      tags: [Posts]
+      summary: 게시글 상세
+      security: [] # public(단 SCHOOL_ONLY는 서버에서 권한 처리)
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PostResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      tags: [Posts]
+      summary: 게시글 수정(작성자 또는 ADMIN)
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PostUpdateRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PostResponse"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    delete:
+      tags: [Posts]
+      summary: 게시글 삭제(작성자 또는 ADMIN, soft delete 권장)
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+      responses:
+        "204":
+          description: No Content
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /posts/{id}/like:
+    post:
+      tags: [Posts]
+      summary: 좋아요 토글(로그인)
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LikeToggleResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /posts/{id}/comments:
+    get:
+      tags: [Comments]
+      summary: 댓글 목록
+      security: [] # public(단 SCHOOL_ONLY 권한 처리 필요)
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommentListResponse"
+    post:
+      tags: [Comments]
+      summary: 댓글 작성(로그인, parentId로 대댓글)
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommentCreateRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommentResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /comments/{id}:
+    delete:
+      tags: [Comments]
+      summary: 댓글 삭제(작성자 또는 ADMIN, soft delete 권장)
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+      responses:
+        "204":
+          description: No Content
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /media/presign:
+    post:
+      tags: [Media]
+      summary: 업로드 presign 발급(예시)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PresignRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PresignResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /media:
+    post:
+      tags: [Media]
+      summary: 업로드 완료 등록(Media 생성)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MediaCreateRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MediaResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /device-tokens:
+    post:
+      tags: [DeviceTokens]
+      summary: 디바이스 토큰 등록
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeviceTokenCreateRequest"
+      responses:
+        "201":
+          description: Created
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /notifications:
+    get:
+      tags: [Notifications]
+      summary: 알림 목록
+      parameters:
+        - name: unreadOnly
+          in: query
+          required: false
+          schema: { type: boolean, default: false }
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationListResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /notifications/{id}/read:
+    post:
+      tags: [Notifications]
+      summary: 알림 읽음 처리
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+      responses:
+        "204":
+          description: No Content
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /share-links:
+    post:
+      tags: [ShareLinks]
+      summary: 공유 링크 생성
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ShareLinkCreateRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ShareLinkCreateResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /share-links/{slug}:
+    get:
+      tags: [ShareLinks]
+      summary: 공유 링크 해석(엔티티 resolve)
+      security: [] # public 공유 가능
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ShareLinkResolveResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    IdPath:
+      name: id
+      in: path
+      required: true
+      schema: { type: string }
+    Cursor:
+      name: cursor
+      in: query
+      required: false
+      schema: { type: string, nullable: true }
+    Limit:
+      name: limit
+      in: query
+      required: false
+      schema: { type: integer, default: 20, maximum: 50, minimum: 1 }
+
+  responses:
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+          example:
+            error: { code: UNAUTHORIZED, message: "인증이 필요합니다.", details: {} }
+    Forbidden:
+      description: Forbidden
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+          example:
+            error: { code: FORBIDDEN, message: "권한이 없습니다.", details: {} }
+    NotFound:
+      description: Not Found
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+          example:
+            error: { code: NOT_FOUND, message: "리소스를 찾을 수 없습니다.", details: {} }
+    Conflict:
+      description: Conflict
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+          example:
+            error: { code: CONFLICT, message: "이미 존재하는 리소스입니다.", details: {} }
+
+  schemas:
+    # ========== Enums ==========
+    UserRole:
+      type: string
+      enum: [USER, ADMIN]
+    Platform:
+      type: string
+      enum: [ANDROID, IOS, WEB]
+    Visibility:
+      type: string
+      enum: [PUBLIC, SCHOOL_ONLY]
+    ScheduleStatus:
+      type: string
+      enum: [SCHEDULED, FINISHED, CANCELED]
+    NotificationType:
+      type: string
+      enum: [POST_LIKED, COMMENT_ADDED, SCHEDULE_REMINDER, INFO_UPDATED, GENERAL]
+    ShareEntityType:
+      type: string
+      enum: [POST, SCHEDULE, INFO, CHEER]
+
+    # ========== Common ==========
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message, details]
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            details:
+              type: object
+              additionalProperties: true
+
+    CursorPage:
+      type: object
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          items: {}
+        nextCursor:
+          type: string
+          nullable: true
+
+    # ========== Auth ==========
+    RegisterRequest:
+      type: object
+      required: [email, password, nickname]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, minLength: 6 }
+        nickname: { type: string }
+        schoolId: { type: string, nullable: true }
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string }
+
+    RefreshRequest:
+      type: object
+      required: [refreshToken]
+      properties:
+        refreshToken: { type: string }
+
+    LogoutRequest:
+      type: object
+      required: [refreshToken]
+      properties:
+        refreshToken: { type: string }
+
+    AuthUser:
+      type: object
+      required: [id, email, nickname, role]
+      properties:
+        id: { type: string }
+        email: { type: string, format: email }
+        nickname: { type: string }
+        role: { $ref: "#/components/schemas/UserRole" }
+        schoolId: { type: string, nullable: true }
+        profileImageUrl: { type: string, nullable: true }
+
+    AuthResponse:
+      type: object
+      required: [user, accessToken, refreshToken]
+      properties:
+        user: { $ref: "#/components/schemas/AuthUser" }
+        accessToken: { type: string }
+        refreshToken: { type: string }
+
+    RefreshResponse:
+      type: object
+      required: [accessToken, refreshToken]
+      properties:
+        accessToken: { type: string }
+        refreshToken: { type: string }
+
+    # ========== Me ==========
+    SchoolBrief:
+      type: object
+      required: [id, name]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        shortName: { type: string, nullable: true }
+        logoUrl: { type: string, nullable: true }
+
+    MeResponse:
+      type: object
+      required: [id, email, nickname, role, schoolId, profileImageUrl, school]
+      properties:
+        id: { type: string }
+        email: { type: string, format: email }
+        nickname: { type: string }
+        role: { $ref: "#/components/schemas/UserRole" }
+        schoolId: { type: string, nullable: true }
+        profileImageUrl: { type: string, nullable: true }
+        school:
+          allOf:
+            - $ref: "#/components/schemas/SchoolBrief"
+          nullable: true
+
+    MeUpdateRequest:
+      type: object
+      properties:
+        nickname: { type: string }
+        profileImageUrl: { type: string, nullable: true }
+
+    # ========== Schools ==========
+    SchoolListResponse:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/SchoolBrief" }
+
+    CheerMethodBrief:
+      type: object
+      required: [id, title, content]
+      properties:
+        id: { type: string }
+        schoolId: { type: string, nullable: true }
+        title: { type: string }
+        content: { type: string }
+        mediaUrl: { type: string, nullable: true }
+
+    ScheduleBrief:
+      type: object
+      required: [id, title, startAt, status]
+      properties:
+        id: { type: string }
+        title: { type: string }
+        description: { type: string, nullable: true }
+        startAt: { type: string, format: date-time }
+        endAt: { type: string, format: date-time, nullable: true }
+        status: { $ref: "#/components/schemas/ScheduleStatus" }
+
+    SchoolDetailResponse:
+      type: object
+      required: [id, name]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        shortName: { type: string, nullable: true }
+        logoUrl: { type: string, nullable: true }
+        cheerMethods:
+          type: array
+          items: { $ref: "#/components/schemas/CheerMethodBrief" }
+        schedulesAsHome:
+          type: array
+          items: { $ref: "#/components/schemas/ScheduleBrief" }
+        schedulesAsAway:
+          type: array
+          items: { $ref: "#/components/schemas/ScheduleBrief" }
+
+    # ========== Schedules ==========
+    ScheduleResponse:
+      type: object
+      required: [id, title, startAt, status, createdAt, updatedAt]
+      properties:
+        id: { type: string }
+        title: { type: string }
+        description: { type: string, nullable: true }
+        startAt: { type: string, format: date-time }
+        endAt: { type: string, format: date-time, nullable: true }
+        status: { $ref: "#/components/schemas/ScheduleStatus" }
+        locationName: { type: string, nullable: true }
+        address: { type: string, nullable: true }
+        lat: { type: number, format: float, nullable: true }
+        lng: { type: number, format: float, nullable: true }
+        homeSchoolId: { type: string, nullable: true }
+        awaySchoolId: { type: string, nullable: true }
+        homeSchool:
+          allOf: [{ $ref: "#/components/schemas/SchoolBrief" }]
+          nullable: true
+        awaySchool:
+          allOf: [{ $ref: "#/components/schemas/SchoolBrief" }]
+          nullable: true
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    ScheduleCreateRequest:
+      type: object
+      required: [title, startAt]
+      properties:
+        title: { type: string }
+        description: { type: string, nullable: true }
+        startAt: { type: string, format: date-time }
+        endAt: { type: string, format: date-time, nullable: true }
+        status: { $ref: "#/components/schemas/ScheduleStatus" }
+        locationName: { type: string, nullable: true }
+        address: { type: string, nullable: true }
+        lat: { type: number, format: float, nullable: true }
+        lng: { type: number, format: float, nullable: true }
+        homeSchoolId: { type: string, nullable: true }
+        awaySchoolId: { type: string, nullable: true }
+
+    ScheduleUpdateRequest:
+      type: object
+      properties:
+        title: { type: string }
+        description: { type: string, nullable: true }
+        startAt: { type: string, format: date-time }
+        endAt: { type: string, format: date-time, nullable: true }
+        status: { $ref: "#/components/schemas/ScheduleStatus" }
+        locationName: { type: string, nullable: true }
+        address: { type: string, nullable: true }
+        lat: { type: number, format: float, nullable: true }
+        lng: { type: number, format: float, nullable: true }
+        homeSchoolId: { type: string, nullable: true }
+        awaySchoolId: { type: string, nullable: true }
+
+    ScheduleListResponse:
+      type: object
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/ScheduleResponse" }
+        nextCursor:
+          type: string
+          nullable: true
+
+    # ========== Info ==========
+    InfoCategoryResponse:
+      type: object
+      required: [id, name, sortOrder]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        sortOrder: { type: integer }
+
+    InfoCategoryListResponse:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/InfoCategoryResponse" }
+
+    TagResponse:
+      type: object
+      required: [id, name]
+      properties:
+        id: { type: string }
+        name: { type: string }
+
+    InfoResponse:
+      type: object
+      required: [id, title, content, createdAt, updatedAt]
+      properties:
+        id: { type: string }
+        categoryId: { type: string, nullable: true }
+        title: { type: string }
+        content: { type: string }
+        sourceUrl: { type: string, nullable: true }
+        locationName: { type: string, nullable: true }
+        address: { type: string, nullable: true }
+        lat: { type: number, format: float, nullable: true }
+        lng: { type: number, format: float, nullable: true }
+        category:
+          allOf: [{ $ref: "#/components/schemas/InfoCategoryResponse" }]
+          nullable: true
+        tags:
+          type: array
+          items: { $ref: "#/components/schemas/TagResponse" }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    InfoCreateRequest:
+      type: object
+      required: [title, content]
+      properties:
+        categoryId: { type: string, nullable: true }
+        title: { type: string }
+        content: { type: string }
+        sourceUrl: { type: string, nullable: true }
+        locationName: { type: string, nullable: true }
+        address: { type: string, nullable: true }
+        lat: { type: number, format: float, nullable: true }
+        lng: { type: number, format: float, nullable: true }
+        tagIds:
+          type: array
+          items: { type: string }
+
+    InfoUpdateRequest:
+      type: object
+      properties:
+        categoryId: { type: string, nullable: true }
+        title: { type: string }
+        content: { type: string }
+        sourceUrl: { type: string, nullable: true }
+        locationName: { type: string, nullable: true }
+        address: { type: string, nullable: true }
+        lat: { type: number, format: float, nullable: true }
+        lng: { type: number, format: float, nullable: true }
+        tagIds:
+          type: array
+          items: { type: string }
+
+    InfoListResponse:
+      type: object
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/InfoResponse" }
+        nextCursor:
+          type: string
+          nullable: true
+
+    TagListResponse:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/TagResponse" }
+
+    # ========== CheerMethods ==========
+    CheerMethodResponse:
+      type: object
+      required: [id, title, content, createdAt, updatedAt]
+      properties:
+        id: { type: string }
+        schoolId: { type: string, nullable: true }
+        title: { type: string }
+        content: { type: string }
+        mediaUrl: { type: string, nullable: true }
+        school:
+          allOf: [{ $ref: "#/components/schemas/SchoolBrief" }]
+          nullable: true
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    CheerMethodCreateRequest:
+      type: object
+      required: [title, content]
+      properties:
+        schoolId: { type: string, nullable: true }
+        title: { type: string }
+        content: { type: string }
+        mediaUrl: { type: string, nullable: true }
+
+    CheerMethodUpdateRequest:
+      type: object
+      properties:
+        schoolId: { type: string, nullable: true }
+        title: { type: string }
+        content: { type: string }
+        mediaUrl: { type: string, nullable: true }
+
+    CheerMethodListResponse:
+      type: object
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/CheerMethodResponse" }
+        nextCursor:
+          type: string
+          nullable: true
+
+    # ========== Posts / Comments ==========
+    PostAuthor:
+      type: object
+      required: [id, nickname]
+      properties:
+        id: { type: string }
+        nickname: { type: string }
+        schoolId: { type: string, nullable: true }
+        profileImageUrl: { type: string, nullable: true }
+
+    MediaResponse:
+      type: object
+      required: [id, url]
+      properties:
+        id: { type: string }
+        url: { type: string }
+        mimeType: { type: string, nullable: true }
+        size: { type: integer, nullable: true }
+        width: { type: integer, nullable: true }
+        height: { type: integer, nullable: true }
+
+    PostResponse:
+      type: object
+      required: [id, title, content, visibility, likeCount, commentCount, createdAt, updatedAt]
+      properties:
+        id: { type: string }
+        authorId: { type: string }
+        title: { type: string }
+        content: { type: string }
+        visibility: { $ref: "#/components/schemas/Visibility" }
+        likeCount: { type: integer }
+        commentCount: { type: integer }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        author: { $ref: "#/components/schemas/PostAuthor" }
+        tags:
+          type: array
+          items: { $ref: "#/components/schemas/TagResponse" }
+        medias:
+          type: array
+          items: { $ref: "#/components/schemas/MediaResponse" }
+        likedByMe:
+          type: boolean
+          description: "옵션: 로그인 상태에서만 반환하도록 구현 가능"
+          nullable: true
+
+    PostListItem:
+      type: object
+      required: [id, title, visibility, likeCount, commentCount, createdAt, author]
+      properties:
+        id: { type: string }
+        title: { type: string }
+        contentPreview: { type: string }
+        visibility: { $ref: "#/components/schemas/Visibility" }
+        likeCount: { type: integer }
+        commentCount: { type: integer }
+        createdAt: { type: string, format: date-time }
+        author: { $ref: "#/components/schemas/PostAuthor" }
+        tags:
+          type: array
+          items: { $ref: "#/components/schemas/TagResponse" }
+
+    PostListResponse:
+      type: object
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/PostListItem" }
+        nextCursor:
+          type: string
+          nullable: true
+
+    PostCreateRequest:
+      type: object
+      required: [title, content]
+      properties:
+        title: { type: string }
+        content: { type: string }
+        visibility: { $ref: "#/components/schemas/Visibility" }
+        tagIds:
+          type: array
+          items: { type: string }
+        mediaIds:
+          type: array
+          items: { type: string }
+
+    PostUpdateRequest:
+      type: object
+      properties:
+        title: { type: string }
+        content: { type: string }
+        visibility: { $ref: "#/components/schemas/Visibility" }
+        tagIds:
+          type: array
+          items: { type: string }
+        mediaIds:
+          type: array
+          items: { type: string }
+
+    LikeToggleResponse:
+      type: object
+      required: [liked, likeCount]
+      properties:
+        liked: { type: boolean }
+        likeCount: { type: integer }
+
+    CommentResponse:
+      type: object
+      required: [id, postId, authorId, content, parentId, createdAt, updatedAt]
+      properties:
+        id: { type: string }
+        postId: { type: string }
+        authorId: { type: string }
+        content: { type: string }
+        parentId: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        author: { $ref: "#/components/schemas/PostAuthor" }
+
+    CommentCreateRequest:
+      type: object
+      required: [content]
+      properties:
+        content: { type: string }
+        parentId: { type: string, nullable: true }
+
+    CommentListResponse:
+      type: object
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/CommentResponse" }
+        nextCursor:
+          type: string
+          nullable: true
+
+    # ========== Media ==========
+    PresignRequest:
+      type: object
+      required: [mimeType, size]
+      properties:
+        mimeType: { type: string }
+        size: { type: integer }
+
+    PresignResponse:
+      type: object
+      required: [uploadUrl, publicUrl, fields]
+      properties:
+        uploadUrl: { type: string }
+        publicUrl: { type: string }
+        fields:
+          type: object
+          additionalProperties: true
+
+    MediaCreateRequest:
+      type: object
+      required: [url]
+      properties:
+        url: { type: string }
+        mimeType: { type: string, nullable: true }
+        size: { type: integer, nullable: true }
+        width: { type: integer, nullable: true }
+        height: { type: integer, nullable: true }
+
+    # ========== DeviceTokens ==========
+    DeviceTokenCreateRequest:
+      type: object
+      required: [token, platform]
+      properties:
+        token: { type: string }
+        platform: { $ref: "#/components/schemas/Platform" }
+
+    # ========== Notifications ==========
+    NotificationResponse:
+      type: object
+      required: [id, type, title, body, createdAt]
+      properties:
+        id: { type: string }
+        type: { $ref: "#/components/schemas/NotificationType" }
+        title: { type: string }
+        body: { type: string }
+        dataJson: { type: string, nullable: true }
+        readAt: { type: string, format: date-time, nullable: true }
+        createdAt: { type: string, format: date-time }
+
+    NotificationListResponse:
+      type: object
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/NotificationResponse" }
+        nextCursor:
+          type: string
+          nullable: true
+
+    # ========== ShareLinks ==========
+    ShareLinkCreateRequest:
+      type: object
+      required: [entityType, entityId]
+      properties:
+        entityType: { $ref: "#/components/schemas/ShareEntityType" }
+        entityId: { type: string }
+        expiresAt: { type: string, format: date-time, nullable: true }
+
+    ShareLinkCreateResponse:
+      type: object
+      required: [slug, url]
+      properties:
+        slug: { type: string }
+        url: { type: string }
+
+    ShareLinkResolveResponse:
+      type: object
+      required: [entityType, entityId, resolved]
+      properties:
+        entityType: { $ref: "#/components/schemas/ShareEntityType" }
+        entityId: { type: string }
+        resolved:
+          description: "entityType에 따라 Post/Schedule/Info/CheerMethod 중 하나를 반환(서버 구현에서 분기)"
+          oneOf:
+            - $ref: "#/components/schemas/PostResponse"
+            - $ref: "#/components/schemas/ScheduleResponse"
+            - $ref: "#/components/schemas/InfoResponse"
+            - $ref: "#/components/schemas/CheerMethodResponse"
