@@ -4,54 +4,58 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.madcamp_1.ui.screen.MainScreen
 import com.example.madcamp_1.ui.screen.initial.InitRoute
 import com.example.madcamp_1.ui.screen.login.LoginRoute
 import com.example.madcamp_1.ui.screen.register.RegisterRoute
-import com.example.madcamp_1.ui.screen.dashboard.DashboardRoute
-import com.example.madcamp_1.ui.screen.info.InfoRoute
+//import com.example.madcamp_1.ui.screen.dashboard.DashboardRoute
 
 @Composable
 fun NavGraph() {
     val navController = rememberNavController()
 
-    @Composable
-    fun NavGraph() {
-        val navController = rememberNavController()
-
-        NavHost(
-            navController = navController,
-            startDestination = "init"
-        ) {
-            composable("init") {
-                InitRoute(onNavigateToLogin = {
-                    navController.navigate("login") { popUpTo("init") { inclusive = true } }
-                })
-            }
-
-            composable("login") {
-                LoginRoute(
-                    onNavigateToRegister = { navController.navigate("register") },
-                    onLoginSuccess = {
-                        navController.navigate("main_screen") {
-                            popUpTo("login") { inclusive = true }
-                        }
+    NavHost(
+        navController = navController,
+        startDestination = "init"
+    ) {
+        // 1. 초기 화면 (3초 대기)
+        composable("init") {
+            InitRoute(
+                onNavigateToLogin = {
+                    navController.navigate("login") {
+                        popUpTo("init") { inclusive = true }
                     }
-                )
-            }
-
-            composable("register") {
-                RegisterRoute(onBackToLogin = { navController.popBackStack() })
-            }
-
-            // ★ 중요: 로그인 이후의 화면은 오직 이 하나로 통합니다.
-            // 이 안에서 schedule, dashboard, info가 하단 탭과 함께 돌아갑니다.
-            composable("main_screen") {
-                MainScreen()
-            }
-
-            // 아래 dashboard와 info는 삭제해야 합니다!
-            // 여기에 있으면 하단 탭 바(MainScreen의 Scaffold) 밖으로 나가버립니다.
+                }
+            )
         }
+
+        // 2. 로그인 화면
+        composable("login") {
+            LoginRoute(
+                // 회원가입 버튼 클릭 시 'register' 주소로 이동
+                onNavigateToRegister = {
+                    navController.navigate("register")
+                },
+                onLoginSuccess = {
+                    navController.navigate("dashboard") {
+                        popUpTo("login") { inclusive = true }
+                    }
+                }
+            )
+        }
+
+        // 3. 회원가입 화면 (새로 추가/구체화된 부분)
+        composable("register") {
+            RegisterRoute(
+                onBackToLogin = {
+                    // '돌아가기' 혹은 '가입 완료' 시 현재 화면을 닫고 이전(로그인)으로 복귀
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        // 4. 메인 대시보드
+        /*composable("dashboard") {
+            DashboardRoute()
+        }*/
     }
 }
