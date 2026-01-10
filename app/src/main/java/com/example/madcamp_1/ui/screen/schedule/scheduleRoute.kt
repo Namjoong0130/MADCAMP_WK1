@@ -9,5 +9,12 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 @Composable
 fun ScheduleRoute(viewModel: ScheduleViewModel = viewModel()) {
     val events by viewModel.events.collectAsState()
-    ScheduleScreen(events = events)
+
+    ScheduleScreen(
+        events = events,
+        userName = viewModel.userName,
+        userSchool = viewModel.userSchool,
+        pScore = viewModel.postechScore,
+        kScore = viewModel.kaistScore
+    )
 }

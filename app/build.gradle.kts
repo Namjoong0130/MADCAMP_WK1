@@ -42,44 +42,35 @@ android {
 }
 
 dependencies {
-    implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.lifecycle.runtime.ktx)
-    implementation(libs.androidx.activity.compose)
-    implementation(platform(libs.androidx.compose.bom))
-    implementation(libs.androidx.compose.ui)
-    implementation(libs.androidx.compose.ui.graphics)
-    implementation(libs.androidx.compose.ui.tooling.preview)
-    implementation(libs.androidx.compose.material3)
-    testImplementation(libs.junit)
-    androidTestImplementation(libs.androidx.junit)
-    androidTestImplementation(libs.androidx.espresso.core)
-    androidTestImplementation(platform(libs.androidx.compose.bom))
-    androidTestImplementation(libs.androidx.compose.ui.test.junit4)
-    debugImplementation(libs.androidx.compose.ui.tooling)
-    debugImplementation(libs.androidx.compose.ui.test.manifest)
-    // 1. Navigation (화면 전환을 위한 핵심 라이브러리)
-    implementation("androidx.navigation:navigation-compose:2.8.5")
+    // BOM 선언 (최신 안정화 버전 권장)
+    implementation(platform("androidx.compose:compose-bom:2024.12.01"))
 
-    // 2. Lifecycle & ViewModel (데이터 관리 및 3초 타이머 등 로직 처리)
+    implementation("androidx.core:core-ktx")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx")
+    implementation("androidx.activity:activity-compose")
+
+    // 버전 번호를 지우고 BOM 버전을 따르도록 설정
+    implementation("androidx.compose.ui:ui")
+    implementation("androidx.compose.ui:ui-graphics")
+    implementation("androidx.compose.ui:ui-tooling-preview")
+    implementation("androidx.compose.material3:material3")
+    implementation("androidx.compose.material:material-icons-extended") // 아이콘 라이브러리 추가
+
+    // Navigation & ViewModel (최신 안정 버전)
+    implementation("androidx.navigation:navigation-compose:2.8.5")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
 
-    // 3. Compose UI 및 Material3 (기본 UI 부품)
-    implementation("androidx.compose.ui:ui:1.7.6")
-    implementation("androidx.compose.ui:ui-graphics:1.7.6")
-    implementation("androidx.compose.ui:ui-tooling-preview:1.7.6")
-    implementation("androidx.compose.material3:material3:1.1.2")
+    // Google Maps (버전 궁합 중요)
+    implementation("com.google.maps.android:maps-compose:4.4.1")
+    implementation("com.google.android.gms:play-services-maps:18.2.0")
 
-    // 4. Activity 연결
-    implementation("androidx.activity:activity-compose:1.9.3")
-
-    // (선택) 이미지 로딩을 위해 Coil이 필요할 수 있습니다.
-    implementation("io.coil-kt:coil-compose:2.6.0")
-    // Google Maps for Compose
-    implementation("com.google.maps.android:maps-compose:4.3.3")
-    implementation("com.google.android.gms:play-services-maps:19.0.0")
-
-    // YouTube Player (Compose와 호환이 좋은 라이브러리)
+    // YouTube Player
     implementation("com.pierfrancescosoffritti.androidyoutubeplayer:core:12.1.0")
-    implementation("androidx.compose.material:material-icons-extended:1.5.0")
+
+    // Coil (이미지 로딩)
+    implementation("io.coil-kt:coil-compose:2.6.0")
+
+    testImplementation("junit:junit:4.13.2")
+    // ... 나머지 테스트 라이브러리 생략
 }
