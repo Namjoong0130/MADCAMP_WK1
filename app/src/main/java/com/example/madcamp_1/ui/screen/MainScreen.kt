@@ -9,19 +9,20 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavType
 import androidx.navigation.compose.*
+import androidx.navigation.navArgument
 import com.example.madcamp_1.ui.screen.dashboard.DashboardRoute
 import com.example.madcamp_1.ui.screen.info.InfoRoute
 import com.example.madcamp_1.ui.screen.schedule.ScheduleRoute
+import com.example.madcamp_1.ui.screen.infoselect.SelectRoute // SelectRoute 임포트
 
 @Composable
 fun MainScreen() {
-    // 탭 이동을 관리할 내부 전용 조종사
     val innerNavController = rememberNavController()
 
     Scaffold(
         bottomBar = {
-            // 현재 어떤 탭에 있는지 감시하여 하단 바의 선택 상태를 업데이트
             val navBackStackEntry by innerNavController.currentBackStackEntryAsState()
             val currentRoute = navBackStackEntry?.destination?.route
 
@@ -40,20 +41,21 @@ fun MainScreen() {
                     icon = { Icon(Icons.Default.List, contentDescription = null) },
                     onClick = { navigateToTab(innerNavController, "dashboard") }
                 )
-                // 경기정보 탭
+                // 경기정보 탭 (클릭 시 select로 이동)
+                // 현재 route가 'select'이거나 'info/...'인 경우 모두 하이라이트 되도록 설정
+                val isInfoSelected = currentRoute == "select" || currentRoute?.startsWith("info") == true
                 NavigationBarItem(
-                    selected = currentRoute == "info",
+                    selected = isInfoSelected,
                     label = { Text("경기정보") },
                     icon = { Icon(Icons.Default.Info, contentDescription = null) },
-                    onClick = { navigateToTab(innerNavController, "info") }
+                    onClick = { navigateToTab(innerNavController, "select") }
                 )
             }
         }
     ) { innerPadding ->
-        // 하단 바를 제외한 나머지 영역(innerPadding)에 화면을 갈아 끼웁니다.
         NavHost(
             navController = innerNavController,
-            startDestination = "schedule", // 로그인 후 첫 탭은 스케줄
+            startDestination = "schedule",
             modifier = Modifier.padding(innerPadding)
         ) {
             composable("schedule") {
@@ -62,26 +64,35 @@ fun MainScreen() {
             composable("dashboard") {
                 DashboardRoute()
             }
-            composable("info") {
-                // onNavigateToDetail은 일단 빈 함수로 넘겨 빨간 줄 방지
-                InfoRoute(onNavigateToDetail = {})
+
+            // [추가] 종목 선택 화면
+            composable("select") {
+                SelectRoute(navController = innerNavController)
+            }
+
+            // [수정] 상세 경기 정보 화면 ({category} 인자를 받음)
+            composable(
+                route = "info/{category}",
+                arguments = listOf(
+                    navArgument("category") { type = NavType.StringType }
+                )
+            ) { backStackEntry ->
+                val category = backStackEntry.arguments?.getString("category") ?: ""
+                InfoRoute(
+                    category = category,
+                    navController = innerNavController
+                )
             }
         }
     }
 }
 
-/**
- * 하단 탭 이동 시 상태 보존을 위한 헬퍼 함수
- */
 private fun navigateToTab(navController: androidx.navigation.NavHostController, route: String) {
     navController.navigate(route) {
-        // 탭 전환 시 스택이 무한히 쌓이지 않도록 시작 지점 위를 다 비움
         popUpTo(navController.graph.findStartDestination().id) {
             saveState = true
         }
-        // 같은 탭을 여러 번 눌러도 새로 생성하지 않음
         launchSingleTop = true
-        // 이전에 보던 상태(스크롤 위치 등)를 복구함
         restoreState = true
     }
 }
