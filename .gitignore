@@ -14,11 +14,13 @@
 .cxx
 local.properties
 
-backend/.env 
-backend/node_modules/
-backend/.next/
+# dependencies
+node_modules/
+**/node_modules/
 
-# backend
-backend/node_modules/
-backend/dist/
-backend/.env
+# env
+.env
+**/.env
+
+backend/src/generated/
+
