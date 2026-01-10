@@ -14,5 +14,6 @@
 .cxx
 local.properties
 
+backend/.env 
 backend/node_modules/
 backend/.next/
