@@ -48,7 +48,9 @@ commentsRouter.post(
   "/posts/:id/comments",
   requireAuth,
   asyncHandler(async (req, res) => {
-    const postId = req.params.id;    if (typeof postId !== 'string') throw new HttpError(400, "Invalid id", "INVALID_ID");    const body = CommentCreateSchema.parse(req.body);
+    const postId = req.params.id;
+    if (typeof postId !== 'string') throw new HttpError(400, "Invalid id", "INVALID_ID");
+    const body = CommentCreateSchema.parse(req.body);
 
     const post = await prisma.post.findUnique({ where: { id: postId }, select: { id: true } });
     if (!post) throw new HttpError(404, "리소스를 찾을 수 없습니다.", "NOT_FOUND");

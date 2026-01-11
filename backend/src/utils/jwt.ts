@@ -10,14 +10,14 @@ export type RefreshTokenPayload = { sub: string };
 export async function signAccessToken(payload: AccessTokenPayload) {
   return new SignJWT(payload)
     .setProtectedHeader({ alg: "HS256" })
-    .setExpirationTime(env.JWT_ACCESS_TTL)
+    .setExpirationTime(env.JWT_ACCESS_EXPIRES_IN)
     .sign(accessSecret);
 }
 
 export async function signRefreshToken(payload: RefreshTokenPayload) {
   return new SignJWT(payload)
     .setProtectedHeader({ alg: "HS256" })
-    .setExpirationTime(env.JWT_REFRESH_TTL)
+    .setExpirationTime(env.JWT_ACCESS_EXPIRES_IN)
     .sign(refreshSecret);
 }
 
