@@ -11,3 +11,11 @@ dist/
 # env
 .env
 .env.development
+
+# build artifacts
+dist/
+*.tsbuildinfo
+src/**/*.js
+src/**/*.js.map
+src/**/*.d.ts
+src/**/*.d.ts.map
