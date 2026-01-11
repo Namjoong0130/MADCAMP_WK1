@@ -25,6 +25,7 @@ model User {
   posts           Post[]
   postLikes       PostLike[]
   refreshTokens   RefreshToken[]
+  shareLinks      ShareLink[]
   school          School?        @relation(fields: [schoolId], references: [id])
 
   @@index([schoolId], map: "User_schoolId_fkey")
@@ -257,14 +258,18 @@ model Notification {
 }
 
 model ShareLink {
-  id         String          @id @default(cuid())
-  entityType ShareEntityType
-  entityId   String
-  slug       String          @unique
-  createdAt  DateTime        @default(now())
-  expiresAt  DateTime?
+  id          String          @id @default(cuid())
+  entityType  ShareEntityType
+  entityId    String
+  slug        String          @unique
+  createdById String
+  createdAt   DateTime        @default(now())
+  expiresAt   DateTime?
+
+  createdBy User @relation(fields: [createdById], references: [id])
 
   @@index([entityType, entityId])
+  @@index([createdById])
 }
 
 enum UserRole {

@@ -11,7 +11,9 @@ export const listSchedules = asyncHandler(async (req, res) => {
 });
 
 export const getSchedule = asyncHandler(async (req, res) => {
-  const item = await service.get(req.params.id);
+  const id = req.params.id;
+  if (typeof id !== 'string') throw new HttpError(400, "Invalid id", "INVALID_ID");
+  const item = await service.get(id);
   if (!item) throw new HttpError(404, "Schedule not found", "SCHEDULE_NOT_FOUND");
   res.json(item);
 });
@@ -25,13 +27,17 @@ export const createSchedule = asyncHandler(async (req, res) => {
 
 export const patchSchedule = asyncHandler(async (req, res) => {
   if (!req.user?.id) throw new HttpError(401, "Unauthorized", "UNAUTHORIZED");
+  const id = req.params.id;
+  if (typeof id !== 'string') throw new HttpError(400, "Invalid id", "INVALID_ID");
   const body = ScheduleUpdateSchema.parse(req.body);
-  const item = await service.patch(req.params.id, req.user.id, body);
+  const item = await service.patch(id, req.user.id, body);
   res.json(item);
 });
 
 export const deleteSchedule = asyncHandler(async (req, res) => {
   if (!req.user?.id) throw new HttpError(401, "Unauthorized", "UNAUTHORIZED");
-  await service.remove(req.params.id);
+  const id = req.params.id;
+  if (typeof id !== 'string') throw new HttpError(400, "Invalid id", "INVALID_ID");
+  await service.remove(id);
   res.status(204).send();
 });

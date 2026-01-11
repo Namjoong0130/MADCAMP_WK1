@@ -21,12 +21,12 @@ export async function signRefreshToken(payload: RefreshTokenPayload) {
     .sign(refreshSecret);
 }
 
-export async function verifyAccessToken(token: string) {
+export async function verifyAccessToken(token: string): Promise<AccessTokenPayload> {
   const { payload } = await jwtVerify(token, accessSecret);
   return payload as AccessTokenPayload;
 }
 
-export async function verifyRefreshToken(token: string) {
+export async function verifyRefreshToken(token: string): Promise<RefreshTokenPayload> {
   const { payload } = await jwtVerify(token, refreshSecret);
   return payload as RefreshTokenPayload;
 }

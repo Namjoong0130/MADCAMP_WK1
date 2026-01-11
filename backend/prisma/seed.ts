@@ -6,7 +6,7 @@ import {
   UserRole,
   NotificationType,
   ShareEntityType,
-} from "../src/generated/prisma/client";
+} from "../src/generated/prisma/client.js";
 
 import { PrismaMariaDb } from "@prisma/adapter-mariadb";
 
@@ -551,32 +551,36 @@ async function main() {
       entityType: ShareEntityType.SCHEDULE,
       entityId: IDS.schedules.OPENING,
       expiresAt: null as Date | null,
+      createdById: IDS.users.ADMIN,
     },
     {
       slug: IDS.shareLinks.INFO_KAIMARU,
       entityType: ShareEntityType.INFO,
       entityId: IDS.infos.KAIMARU,
       expiresAt: null as Date | null,
+      createdById: IDS.users.ADMIN,
     },
     {
       slug: IDS.shareLinks.CHEER_KAIST,
       entityType: ShareEntityType.CHEER,
       entityId: IDS.cheerMethods.KAIST_1,
       expiresAt: null as Date | null,
+      createdById: IDS.users.ADMIN,
     },
     {
       slug: IDS.shareLinks.POST_WELCOME,
       entityType: ShareEntityType.POST,
       entityId: IDS.posts.WELCOME,
       expiresAt: null as Date | null,
+      createdById: IDS.users.ADMIN,
     },
   ];
 
   for (const s of shareLinks) {
     await prisma.shareLink.upsert({
       where: { slug: s.slug },
-      update: { entityType: s.entityType, entityId: s.entityId, expiresAt: s.expiresAt },
-      create: { slug: s.slug, entityType: s.entityType, entityId: s.entityId, expiresAt: s.expiresAt },
+      update: { entityType: s.entityType, entityId: s.entityId, expiresAt: s.expiresAt, createdById: s.createdById },
+      create: { slug: s.slug, entityType: s.entityType, entityId: s.entityId, expiresAt: s.expiresAt, createdById: s.createdById },
     });
   }
 
