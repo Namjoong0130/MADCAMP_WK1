@@ -4,7 +4,12 @@ export const RegisterSchema = z.object({
   email: z.string().email(),
   password: z.string().min(6),
   nickname: z.string().min(1),
-  schoolId: z.string().nullable().optional(),
+  schoolId: z
+    .string()
+    .trim()
+    .transform((v) => (v === "" ? null : v))
+    .nullable()
+    .optional(),
 });
 
 export const LoginSchema = z.object({

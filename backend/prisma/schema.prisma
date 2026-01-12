@@ -262,11 +262,10 @@ model ShareLink {
   entityType  ShareEntityType
   entityId    String
   slug        String          @unique
-  createdById String
   createdAt   DateTime        @default(now())
   expiresAt   DateTime?
-
-  createdBy User @relation(fields: [createdById], references: [id])
+  createdById String
+  createdBy   User            @relation(fields: [createdById], references: [id])
 
   @@index([entityType, entityId])
   @@index([createdById])

@@ -1,3 +1,4 @@
+// src/modules/auth/auth.service.ts
 import { prisma } from "../../db/prisma.js";
 import { HttpError } from "../../utils/httpError.js";
 import { hashPassword, verifyPassword } from "../../utils/password.js";
@@ -8,13 +9,24 @@ export class AuthService {
     const exists = await prisma.user.findUnique({ where: { email: input.email } });
     if (exists) throw new HttpError(409, "Email already exists", "EMAIL_EXISTS");
 
+    // ✅ 추가: schoolId 검증
+    const schoolId = input.schoolId ?? null;
+    if (schoolId) {
+      const school = await prisma.school.findUnique({ where: { id: schoolId }, select: { id: true } });
+      if (!school) {
+        throw new HttpError(400, "Invalid schoolId", "INVALID_SCHOOL_ID");
+      }
+    }
+
     const passwordHash = await hashPassword(input.password);
+
+    // ✅ 여기서는 검증된 schoolId만 들어감
     const user = await prisma.user.create({
       data: {
         email: input.email,
         passwordHash,
         nickname: input.nickname,
-        schoolId: input.schoolId ?? null,
+        schoolId,
       },
       select: { id: true, email: true, nickname: true, role: true, schoolId: true, profileImageUrl: true },
     });
