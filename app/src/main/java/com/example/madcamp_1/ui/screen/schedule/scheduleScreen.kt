@@ -17,6 +17,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.madcamp_1.R
+import com.example.madcamp_1.ui.theme.UnivsFontFamily
 
 @SuppressLint("UnusedBoxWithConstraintsScope")
 @Composable
@@ -34,55 +35,73 @@ fun ScheduleScreen(
 
     Column(modifier = Modifier.fillMaxSize().background(Color(0xFFF8F9FA)).padding(16.dp)) {
 
-        // --- 상단 헤더 영역 (로고 상단, 이름 하단) ---
+        // --- 상단 헤더 영역 (정렬 최적화) ---
         Row(
-            modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 20.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(verticalArrangement = Arrangement.Center) {
-
+            // 왼쪽: 유저 정보 및 학교 로고
+            Column(
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+                horizontalAlignment = Alignment.Start
+            ) {
+                // 학교 로고 (가독성을 위해 높이 35dp로 살짝 조정)
                 Image(
                     painter = painterResource(id = if (userSchool == "POSTECH") R.drawable.postech else R.drawable.kaist),
                     contentDescription = userSchool,
-                    modifier = Modifier.height(20.dp), // 로고 크기 대폭 확대
+                    modifier = Modifier.height(35.dp),
                     contentScale = ContentScale.Fit
                 )
 
-                Spacer(modifier = Modifier.height(3.dp))
-
-                // 1. 학교 로고 (크기를 키우고 상단에 배치)
+                // 사람 이름 (요청대로 폰트 크기 살짝 축소: 15sp -> 14sp)
                 Text(
-                    text = userName + "님",
+                    text = "${userName}님",
+                    // MaterialTheme.typography를 사용하면 자동으로 UnivsFontFamily가 적용됩니다.
                     style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = Color.DarkGray
+                    color = Color.DarkGray,
+                    modifier = Modifier.padding(start = 2.dp)
                 )
             }
 
-            // 3. 스코어보드 (디자인 개선)
+            // 오른쪽: 점수보드 (대칭 및 간격 압축)
             Surface(
                 shape = RoundedCornerShape(20.dp),
                 color = Color.White,
-                shadowElevation = 4.dp
+                shadowElevation = 2.dp
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 0.dp),
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Image(painter = painterResource(id = R.drawable.kaist), contentDescription = null, modifier = Modifier.size(60.dp))
+                    // KAIST 로고 (60dp)
+                    Image(
+                        painter = painterResource(id = R.drawable.kaist),
+                        contentDescription = null,
+                        modifier = Modifier.size(60.dp)
+                    )
+
+                    // 점수 텍스트
                     Text(
-                        text = " $kScore : $pScore  ",
-                        fontSize = 18.sp,
+                        text = " $kScore : $pScore ",
+                        fontSize = 20.sp,
                         fontWeight = FontWeight.Black,
                         color = Color.Black
                     )
-                    Image(painter = painterResource(id = R.drawable.postech), contentDescription = null, modifier = Modifier.size(80.dp))
+
+                    // POSTECH 로고 (대칭을 위해 60dp로 통일)
+                    Image(
+                        painter = painterResource(id = R.drawable.postech),
+                        contentDescription = null,
+                        modifier = Modifier.size(60.dp)
+                    )
                 }
             }
         }
 
-        // --- 일정표 영역 ---
+        // --- 일정표 영역 (가독성 대폭 개선) ---
         BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
@@ -103,7 +122,7 @@ fun ScheduleScreen(
                     Spacer(modifier = Modifier.width(40.dp))
                     days.forEach { day ->
                         Box(modifier = Modifier.weight(1f).fillMaxHeight(), contentAlignment = Alignment.Center) {
-                            Text(day, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF495057))
+                            Text(day, fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF495057))
                         }
                     }
                 }
@@ -114,7 +133,7 @@ fun ScheduleScreen(
                     Column(modifier = Modifier.width(40.dp)) {
                         (startHour..endHour).forEach { hour ->
                             Box(modifier = Modifier.height(hourHeight).fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
-                                Text("$hour", fontSize = 11.sp, color = Color.LightGray, modifier = Modifier.padding(top = 4.dp))
+                                Text("$hour", fontSize = 10.sp, color = Color.LightGray, modifier = Modifier.padding(top = 4.dp))
                             }
                         }
                     }
@@ -126,26 +145,38 @@ fun ScheduleScreen(
                                 val topMargin = (event.startHour - startHour) * hourHeight.value
                                 val eventHeight = event.duration * hourHeight.value
 
-                                // 가독성 해결: 파스텔톤 배경 + 진한 텍스트 조합
+                                // [핵심 수정] 가독성을 높인 카드 디자인
                                 Surface(
                                     modifier = Modifier
-                                        .padding(top = topMargin.dp, start = 4.dp, end = 4.dp)
+                                        .padding(top = topMargin.dp, start = 3.dp, end = 3.dp)
                                         .fillMaxWidth()
                                         .height(eventHeight.dp),
-                                    // 배경은 연하게(파스텔), 테두리는 진하게 하여 대비 생성
-                                    color = event.color.copy(alpha = 0.2f),
-                                    shape = RoundedCornerShape(10.dp),
-                                    border = androidx.compose.foundation.BorderStroke(1.5.dp, event.color.copy(alpha = 0.6f))
+                                    // 배경은 아주 연하게 (파스텔 느낌 유지)
+                                    color = event.color.copy(alpha = 0.12f),
+                                    shape = RoundedCornerShape(6.dp),
+                                    // 테두리도 아주 연하게
+                                    border = androidx.compose.foundation.BorderStroke(0.5.dp, event.color.copy(alpha = 0.3f))
                                 ) {
-                                    Box(modifier = Modifier.padding(6.dp)) {
-                                        Text(
-                                            text = event.name,
-                                            fontSize = 12.sp,
-                                            // 텍스트를 배경보다 훨씬 진한 색으로 설정하여 가독성 확보
-                                            color = event.color.copy(alpha = 1f),
-                                            fontWeight = FontWeight.ExtraBold,
-                                            lineHeight = 14.sp
+                                    Row(modifier = Modifier.fillMaxSize()) {
+                                        // 1. 왼쪽 컬러 포인트 바 (노랑/초록이라도 이 바를 통해 종목 구분이 확실해짐)
+                                        Box(
+                                            modifier = Modifier
+                                                .width(4.dp)
+                                                .fillMaxHeight()
+                                                .background(event.color) // 원색 그대로 사용
                                         )
+
+                                        // 2. 텍스트 영역
+                                        Box(modifier = Modifier.padding(5.dp)) {
+                                            Text(
+                                                text = event.name,
+                                                // 직접 fontFamily를 지정할 수도 있습니다.
+                                                fontFamily = UnivsFontFamily,
+                                                fontSize = 12.sp,
+                                                fontWeight = FontWeight.ExtraBold,
+                                                color = event.color.copy(alpha = 1f)
+                                            )
+                                        }
                                     }
                                 }
                             }

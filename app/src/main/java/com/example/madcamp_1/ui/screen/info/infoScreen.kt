@@ -26,12 +26,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.rememberAsyncImagePainter
+import com.example.madcamp_1.ui.theme.UnivsFontFamily // [추가] 폰트 임포트
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.*
 
-// 디자인 테마 컬러 선언
+// 디자인 테마 컬러 선언 (기존 동일)
 val KaistBlue = Color(0xFF004191)
 val PostechRed = Color(0xFFE4002B)
 val BgGray = Color(0xFFF8F9FA)
@@ -52,7 +53,6 @@ fun InfoScreen(
         position = CameraPosition.fromLatLngZoom(location, 16f)
     }
 
-    // 위치 데이터 변경 시 카메라 부드럽게 이동
     LaunchedEffect(location) {
         cameraPositionState.animate(CameraUpdateFactory.newLatLngZoom(location, 16f))
     }
@@ -60,13 +60,18 @@ fun InfoScreen(
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text(category, fontWeight = FontWeight.ExtraBold) },
+                title = {
+                    Text(
+                        text = category,
+                        fontWeight = FontWeight.ExtraBold,
+                        fontFamily = UnivsFontFamily // [수정] 폰트 적용
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                     }
                 },
-                // [수정] 상단바 배경색을 메인 배경색과 통일
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                     containerColor = BgGray,
                     titleContentColor = Color.Black
@@ -74,13 +79,11 @@ fun InfoScreen(
             )
         },
         containerColor = BgGray,
-        // [수정] 시스템 기본 여백 초기화하여 하단 여백 버그 수정
         contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                // [수정] 상단바 영역만 패딩 적용 (하단 여백 중복 방지)
                 .padding(top = padding.calculateTopPadding())
                 .verticalScroll(scrollState)
                 .padding(horizontal = 20.dp)
@@ -109,7 +112,6 @@ fun InfoScreen(
                 Spacer(modifier = Modifier.height(12.dp))
             }
 
-            // [수정] 하단 바와의 간격 최적화
             Spacer(modifier = Modifier.height(20.dp))
         }
     }
@@ -121,7 +123,6 @@ fun SectionHeader(title: String, icon: ImageVector) {
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.padding(bottom = 12.dp)
     ) {
-        // [추가] 텍스트 앞 아이콘
         Icon(
             imageVector = icon,
             contentDescription = null,
@@ -133,52 +134,13 @@ fun SectionHeader(title: String, icon: ImageVector) {
             text = title,
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
+            fontFamily = UnivsFontFamily, // [수정] 섹션 헤더 폰트 적용
             color = Color.DarkGray
         )
     }
 }
 
-@Composable
-fun YouTubeModernCard(videoId: String, onClick: () -> Unit) {
-    Card(
-        shape = RoundedCornerShape(20.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-        modifier = Modifier
-            .fillMaxWidth()
-            .aspectRatio(16f / 9f)
-            .clickable { onClick() }
-    ) {
-        Box(contentAlignment = Alignment.Center) {
-            Image(
-                painter = rememberAsyncImagePainter("https://img.youtube.com/vi/$videoId/maxresdefault.jpg"),
-                contentDescription = null,
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop
-            )
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.6f))
-                        )
-                    )
-            )
-            Surface(
-                modifier = Modifier.size(64.dp),
-                color = Color.White.copy(alpha = 0.9f),
-                shape = CircleShape
-            ) {
-                Icon(
-                    imageVector = Icons.Default.PlayArrow,
-                    contentDescription = null,
-                    tint = KaistBlue,
-                    modifier = Modifier.size(40.dp).padding(start = 4.dp)
-                )
-            }
-        }
-    }
-}
+// YouTubeModernCard는 이미지가 주를 이루므로 텍스트 수정 없음
 
 @Composable
 fun StadiumLocationCard(name: String, state: CameraPositionState, location: LatLng) {
@@ -203,7 +165,12 @@ fun StadiumLocationCard(name: String, state: CameraPositionState, location: LatL
             ) {
                 Icon(Icons.Default.LocationOn, contentDescription = null, tint = KaistBlue)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(name, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
+                Text(
+                    text = name,
+                    fontWeight = FontWeight.SemiBold,
+                    fontFamily = UnivsFontFamily, // [수정] 경기장 이름 폰트 적용
+                    fontSize = 16.sp
+                )
             }
         }
     }
@@ -211,7 +178,6 @@ fun StadiumLocationCard(name: String, state: CameraPositionState, location: LatL
 
 @Composable
 fun MatchResultItem(record: MatchRecord) {
-    // [수정] 이긴 팀에 따라 컬러 자동 결정 (KAIST: 파랑, POSTECH: 빨강)
     val winColor = if (record.winner == "KAIST") KaistBlue else PostechRed
 
     Card(
@@ -224,17 +190,21 @@ fun MatchResultItem(record: MatchRecord) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(text = "${record.year}년 경기", fontSize = 12.sp, color = Color.Gray)
-                // [수정] 승리 텍스트(홈승 등)도 팀 컬러에 맞게 변경
+                Text(
+                    text = "${record.year}년 경기",
+                    fontSize = 12.sp,
+                    fontFamily = UnivsFontFamily, // [수정] 연도 폰트 적용
+                    color = Color.Gray
+                )
                 Text(
                     text = record.note,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
+                    fontFamily = UnivsFontFamily, // [수정] 비고 폰트 적용
                     color = winColor
                 )
             }
 
-            // 승리 팀 태그
             Surface(
                 color = winColor.copy(alpha = 0.1f),
                 shape = RoundedCornerShape(8.dp)
@@ -244,6 +214,7 @@ fun MatchResultItem(record: MatchRecord) {
                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                     color = winColor,
                     fontWeight = FontWeight.ExtraBold,
+                    fontFamily = UnivsFontFamily, // [수정] 승리팀 폰트 적용
                     fontSize = 14.sp
                 )
             }
@@ -253,8 +224,70 @@ fun MatchResultItem(record: MatchRecord) {
             Text(
                 text = record.score,
                 fontWeight = FontWeight.Black,
+                fontFamily = UnivsFontFamily, // [수정] 점수 폰트 적용
                 fontSize = 18.sp,
                 letterSpacing = 1.sp
+            )
+        }
+    }
+}
+
+@Composable
+fun YouTubeModernCard(videoId: String, onClick: () -> Unit) {
+    Card(
+        shape = RoundedCornerShape(20.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .aspectRatio(16f / 9f)
+            .clickable { onClick() }
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            // 1. 유튜브 썸네일 이미지
+            Image(
+                painter = rememberAsyncImagePainter("https://img.youtube.com/vi/$videoId/maxresdefault.jpg"),
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+
+            // 2. 어두운 그라데이션 오버레이
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.6f))
+                        )
+                    )
+            )
+
+            // 3. 중앙 재생 버튼 아이콘
+            Surface(
+                modifier = Modifier.size(64.dp),
+                color = Color.White.copy(alpha = 0.9f),
+                shape = CircleShape
+            ) {
+                Icon(
+                    imageVector = Icons.Default.PlayArrow,
+                    contentDescription = null,
+                    tint = KaistBlue, // 상단에 선언한 KaistBlue 사용
+                    modifier = Modifier
+                        .size(40.dp)
+                        .padding(start = 4.dp)
+                )
+            }
+
+            // 4. (선택사항) 우측 하단에 '하이라이트 보기' 텍스트 추가 시 폰트 적용
+            Text(
+                text = "하이라이트 재생",
+                fontFamily = UnivsFontFamily, // 새로 넣으신 폰트 적용
+                color = Color.White,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(16.dp)
             )
         }
     }
