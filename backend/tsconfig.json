@@ -1,0 +1,40 @@
+{
+  // Visit https://aka.ms/tsconfig to read more about this file
+  "compilerOptions": {
+    // ✅ File Layout (빌드 결과를 dist로)
+    "rootDir": "./src",
+    "outDir": "./dist",
+
+    // ✅ ESM(NodeNext) 유지
+    "module": "nodenext",
+    "moduleResolution": "NodeNext",
+    "target": "esnext",
+
+    // ✅ Node 타입 사용(서버 프로젝트라 권장)
+    "types": ["node"],
+
+    // Other Outputs (현재 설정 유지)
+    "sourceMap": true,
+    "declaration": true,
+    "declarationMap": true,
+
+    // Stricter Typechecking Options (현재 설정 유지)
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+
+    // Recommended Options (현재 설정 유지)
+    "strict": true,
+    "jsx": "react-jsx",
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "noUncheckedSideEffectImports": true,
+    "moduleDetection": "force",
+    "skipLibCheck": true
+  },
+
+  // ✅ 핵심: 빌드는 src만 컴파일
+  "include": ["src/**/*.ts"],
+
+  // ✅ prisma/seed/config는 빌드 대상이 아님(tsx/prisma가 따로 씀)
+  "exclude": ["node_modules", "dist", "prisma/**", "prisma.config.ts"]
+}
