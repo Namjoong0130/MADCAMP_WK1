@@ -6,7 +6,7 @@ import kotlinx.coroutines.flow.asStateFlow
 
 class RegisterViewModel : ViewModel() {
     // 1. 상태 선언
-    private val _school = MutableStateFlow("POSTECH") // 기본값
+    private val _school = MutableStateFlow("") // 기본값
     val school = _school.asStateFlow()
 
     private val _email = MutableStateFlow("")
