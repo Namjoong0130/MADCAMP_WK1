@@ -21,7 +21,7 @@ import { shareLinksRouter } from "./modules/shareLinks/shareLinks.router.js";
 export const routes = Router();
 
 // Swagger UI (/docs)
-const openapiPath = path.resolve(process.cwd(), "openapi.yaml");
+const openapiPath = path.resolve(process.cwd(), "docs", "openapi.yaml");
 if (fs.existsSync(openapiPath)) {
   const spec = parse(fs.readFileSync(openapiPath, "utf8"));
   routes.use("/docs", swaggerUi.serve, swaggerUi.setup(spec));
