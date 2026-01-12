@@ -16,7 +16,7 @@ export function createApp() {
   app.use(express.json({ limit: "2mb" }));
   app.use(morgan("dev"));
 
-  app.get("/health", (_req, res) => res.json({ ok: true }));
+  app.get(["/health", "/api/health"], (_req, res) => res.json({ ok: true }));
 
   // ✅ Swagger/OpenAPI (docs/openapi.yaml 기준)
   const openapiPath = path.resolve(process.cwd(), "docs", "openapi.yaml");
@@ -45,7 +45,7 @@ export function createApp() {
     console.log("[swagger] spec: /openapi.yaml");
   }
 
-  app.use(routes);
+  app.use("/api",routes);
   app.use(notFound);
   app.use(errorMiddleware);
 

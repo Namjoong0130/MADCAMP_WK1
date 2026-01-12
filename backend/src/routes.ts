@@ -4,19 +4,19 @@ import fs from "fs";
 import { parse } from "yaml";
 import swaggerUi from "swagger-ui-express";
 
-import { authRouter } from "./routes/auth.route.js";
-import { meRouter } from "./routes/me.route.js";
-import { schoolsRouter } from "./routes/schools.route.js";
-import { schedulesRouter } from "./routes/schedules.route.js";
-import { infoRouter } from "./routes/info.route.js";
-import { tagsRouter } from "./routes/tags.route.js";
-import { cheerRouter } from "./routes/cheerMethods.route.js";
-import { postsRouter } from "./routes/posts.route.js";
-import { commentsRouter } from "./routes/comments.route.js";
-import { mediaRouter } from "./routes/media.route.js";
-import { deviceTokensRouter } from "./routes/deviceTokens.route.js";
-import { notificationsRouter } from "./routes/notifications.route.js";
-import { shareLinksRouter } from "./routes/shareLinks.route.js";
+import { authRouter } from "./modules/auth/auth.router.js";
+import { meRouter } from "./modules/me/me.router.js";
+import { schoolsRouter } from "./modules/schools/schools.router.js";
+import { schedulesRouter } from "./modules/schedules/schedules.router.js";
+import { infoRouter } from "./modules/info/info.router.js";
+import { tagsRouter } from "./modules/tags/tags.router.js";
+import { cheerRouter } from "./modules/cheerMethods/cheer.router.js";
+import { postsRouter } from "./modules/posts/posts.router.js";
+import { commentsRouter } from "./modules/comments/comments.router.js";
+import { mediaRouter } from "./modules/media/media.router.js";
+import { deviceTokensRouter } from "./modules/deviceTokens/deviceTokens.router.js";
+import { notificationsRouter } from "./modules/notifications/notifications.router.js";
+import { shareLinksRouter } from "./modules/shareLinks/shareLinks.router.js";
 
 export const routes = Router();
 

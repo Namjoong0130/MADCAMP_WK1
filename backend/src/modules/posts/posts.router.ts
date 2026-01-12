@@ -1,3 +1,4 @@
+//backend/src/modules/posts/posts.router.ts
 import { Router } from "express";
 import { asyncHandler } from "../../utils/asyncHandler.js";
 import { prisma } from "../../db/prisma.js";
