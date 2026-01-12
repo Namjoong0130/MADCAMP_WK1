@@ -2,8 +2,11 @@ package com.example.madcamp_1.ui.screen.dashboard
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.madcamp_1.data.api.RetrofitClient
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.*
 
 class DashboardViewModel : ViewModel() {
     private val _searchText = MutableStateFlow("")
@@ -16,7 +19,6 @@ class DashboardViewModel : ViewModel() {
     private val _isLoading = MutableStateFlow(false)
     val isLoading = _isLoading.asStateFlow()
 
-    // 필터링 로직: 태그와 검색어 동시 적용
     val filteredPosts = combine(_posts, _selectedTag, _searchText) { posts, tag, query ->
         posts.filter {
             (tag == "전체" || it.category == tag) &&
@@ -24,24 +26,36 @@ class DashboardViewModel : ViewModel() {
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    init {
-        fetchPosts()
-    }
+    init { fetchPosts() }
 
     fun fetchPosts() {
         viewModelScope.launch {
             _isLoading.value = true
-            // 실제 환경에서는 여기서 Retrofit API를 호출합니다.
-            val currentTime = System.currentTimeMillis()
-            val dayMillis = 24 * 60 * 60 * 1000
-
-            _posts.value = listOf(
-                Post(1, "포스텍 야구부 모집", "매주 주말 즐겁게 경기하실 분!", "소통", currentTime, "익명", "https://picsum.photos/200", 15),
-                Post(2, "학식 메뉴 꿀팁 공유", "이 식당은 이게 제일 맛있어요.", "꿀팁", currentTime - (dayMillis * 1), "익명", null, 42),
-                Post(3, "컴공 전공책 팝니다", "거의 새 책입니다. 연락주세요.", "소통", currentTime - (dayMillis * 2), "익명", "https://picsum.photos/201", 3)
-            )
-            _isLoading.value = false
+            try {
+                val response = RetrofitClient.apiService.getPosts()
+                _posts.value = response.items.map { item ->
+                    Post(
+                        id = item.id.hashCode(), // String을 Int로 변환
+                        title = item.title,
+                        content = item.content,
+                        category = item.tags.firstOrNull()?.name ?: "소통",
+                        timestamp = parseIsoDate(item.createdAt),
+                        author = item.author.nickname,
+                        imageUri = item.medias.firstOrNull()?.url, // 서버에 저장된 Base64 URL
+                        likes = item.likeCount
+                    )
+                }
+            } catch (e: Exception) { e.printStackTrace() }
+            finally { _isLoading.value = false }
         }
+    }
+
+    private fun parseIsoDate(isoString: String): Long {
+        return try {
+            val format = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US)
+            format.timeZone = TimeZone.getTimeZone("UTC")
+            format.parse(isoString)?.time ?: System.currentTimeMillis()
+        } catch (e: Exception) { System.currentTimeMillis() }
     }
 
     fun onSearchTextChange(text: String) { _searchText.value = text }

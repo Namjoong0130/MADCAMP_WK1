@@ -7,11 +7,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
 import androidx.navigation.compose.*
 import androidx.navigation.navArgument
 import com.example.madcamp_1.ui.screen.dashboard.DashboardRoute
+import com.example.madcamp_1.ui.screen.dashboard.DashboardViewModel
 import com.example.madcamp_1.ui.screen.info.InfoRoute
 import com.example.madcamp_1.ui.screen.schedule.ScheduleRoute
 import com.example.madcamp_1.ui.screen.infoselect.SelectRoute
@@ -25,7 +27,9 @@ fun MainScreen() {
     val navBackStackEntry by innerNavController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
-    // 글쓰기 및 상세 페이지에서는 하단 바를 숨김
+    // [중요] DashboardViewModel을 여기서 생성하여 공유합니다.
+    val dashboardViewModel: DashboardViewModel = viewModel()
+
     val showBottomBar = currentRoute != "write" && currentRoute?.startsWith("article") == false
 
     Scaffold(
@@ -64,6 +68,7 @@ fun MainScreen() {
 
             composable("dashboard") {
                 DashboardRoute(
+                    viewModel = dashboardViewModel, // 생성한 ViewModel 전달
                     onNavigateToWrite = { innerNavController.navigate("write") },
                     onNavigateToArticle = { postId -> innerNavController.navigate("article/$postId") }
                 )
@@ -79,9 +84,14 @@ fun MainScreen() {
                 InfoRoute(category = category, navController = innerNavController)
             }
 
-            composable("write") { WriteRoute(onBack = { innerNavController.popBackStack() }) }
+            // [수정] WriteRoute에 dashboardViewModel을 전달합니다.
+            composable("write") {
+                WriteRoute(
+                    dashboardViewModel = dashboardViewModel,
+                    onBack = { innerNavController.popBackStack() }
+                )
+            }
 
-            // 게시글 상세 페이지 라우팅
             composable(
                 route = "article/{postId}",
                 arguments = listOf(navArgument("postId") { type = NavType.IntType })
