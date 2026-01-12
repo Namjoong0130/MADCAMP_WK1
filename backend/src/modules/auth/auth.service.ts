@@ -31,8 +31,8 @@ export class AuthService {
       select: { id: true, email: true, nickname: true, role: true, schoolId: true, profileImageUrl: true },
     });
 
-    const accessToken = signAccessToken({ sub: user.id, role: user.role });
-    const refreshToken = signRefreshToken({ sub: user.id });
+    const accessToken = await signAccessToken({ sub: user.id, role: user.role });
+    const refreshToken = await signRefreshToken({ sub: user.id });
 
     return { user, accessToken, refreshToken };
   }
@@ -44,8 +44,8 @@ export class AuthService {
     const ok = await verifyPassword(input.password, user.passwordHash);
     if (!ok) throw new HttpError(401, "Invalid credentials", "INVALID_CREDENTIALS");
 
-    const accessToken = signAccessToken({ sub: user.id, role: user.role });
-    const refreshToken = signRefreshToken({ sub: user.id });
+    const accessToken = await signAccessToken({ sub: user.id, role: user.role });
+    const refreshToken = await signRefreshToken({ sub: user.id });
 
     const authUser = {
       id: user.id,
@@ -67,7 +67,7 @@ export class AuthService {
     });
     if (!user) throw new HttpError(401, "Invalid refresh token", "INVALID_REFRESH");
 
-    const accessToken = signAccessToken({ sub: user.id, role: user.role });
+    const accessToken = await signAccessToken({ sub: user.id, role: user.role });
     return { accessToken };
   }
 
