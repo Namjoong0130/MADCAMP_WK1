@@ -1,89 +1,115 @@
 package com.example.madcamp_1.ui.screen.login
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.TextStyle // 추가
-import androidx.compose.ui.text.font.FontFamily // 추가
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.madcamp_1.ui.theme.UnivsFontFamily
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.collectLatest
 
 @Composable
 fun LoginScreen(
     username: String,
     password: String,
+    errorEvent: SharedFlow<String>, // 에러 수신
     onUsernameChange: (String) -> Unit,
     onPasswordChange: (String) -> Unit,
     onLoginClick: () -> Unit,
     onRegisterClick: () -> Unit
 ) {
-    Column(
-        modifier = Modifier.fillMaxSize().padding(24.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(text = "로그인", fontFamily = UnivsFontFamily, fontSize = 34.sp)
+    val snackbarHostState = remember { SnackbarHostState() }
 
-        Spacer(modifier = Modifier.height(32.dp))
-
-        // 아이디 입력창 (커스텀 폰트 유지)
-        OutlinedTextField(
-            value = username,
-            onValueChange = onUsernameChange,
-            label = { Text("아이디") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // 비밀번호 입력창 (입력 텍스트만 기본 폰트로 설정)
-        OutlinedTextField(
-            value = password,
-            onValueChange = onPasswordChange,
-            label = { Text("비밀번호") }, // 레이블은 UnivsFont가 적용됩니다.
-            visualTransformation = PasswordVisualTransformation(),
-            // [핵심] textStyle을 사용하여 입력 영역만 기본 폰트로 강제 지정
-            textStyle = LocalTextStyle.current.copy(
-                fontFamily = FontFamily.Default,
-                letterSpacing = 2.sp // 비밀번호 점 사이 간격을 넓히면 더 깔끔합니다.
-            ),
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // 로그인 버튼
-        Button(
-            onClick = onLoginClick,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("로그인하기", fontFamily = UnivsFontFamily)
+    // 에러 이벤트 감지 시 스낵바 노출
+    LaunchedEffect(errorEvent) {
+        errorEvent.collectLatest { message ->
+            snackbarHostState.showSnackbar(message = message, duration = SnackbarDuration.Short)
         }
+    }
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically // 텍스트와 버튼의 높이 정렬
+    Scaffold(
+        snackbarHost = {
+            SnackbarHost(hostState = snackbarHostState) { data ->
+                Snackbar(
+                    containerColor = Color(0xFFD32F2F), // 경고용 빨간색
+                    contentColor = Color.White,
+                    shape = RoundedCornerShape(12.dp),
+                    snackbarData = data
+                )
+            }
+        }
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(24.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "계정이 없으신가요? ",
-                fontSize = 14.sp,
-                // 필요 시 fontFamily = UnivsFontFamily 추가
+                text = "로그인",
+                fontFamily = UnivsFontFamily,
+                fontSize = 34.sp,
+                fontWeight = FontWeight.ExtraBold
             )
-            TextButton(
-                onClick = onRegisterClick,
-                contentPadding = PaddingValues(0.dp) // 버튼 내부 기본 여백 제거로 텍스트 밀착
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // 아이디 입력창 (이메일임을 명시)
+            OutlinedTextField(
+                value = username,
+                onValueChange = onUsernameChange,
+                label = { Text("이메일 주소", fontFamily = UnivsFontFamily) },
+                placeholder = { Text("example@univ.ac.kr", color = Color.LightGray) },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // 비밀번호 입력창
+            OutlinedTextField(
+                value = password,
+                onValueChange = onPasswordChange,
+                label = { Text("비밀번호", fontFamily = UnivsFontFamily) },
+                visualTransformation = PasswordVisualTransformation(),
+                textStyle = LocalTextStyle.current.copy(
+                    fontFamily = FontFamily.Default,
+                    letterSpacing = 2.sp
+                ),
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            Button(
+                onClick = onLoginClick,
+                modifier = Modifier.fillMaxWidth().height(52.dp),
+                shape = RoundedCornerShape(12.dp)
             ) {
-                Text(
-                    text = "회원가입",
-                    fontFamily = UnivsFontFamily,
-                    fontSize = 14.sp,
-                    color = MaterialTheme.colorScheme.primary
-                )
+                Text("로그인하기", fontFamily = UnivsFontFamily, fontWeight = FontWeight.Bold)
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Row(
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("계정이 없으신가요? ", fontFamily = UnivsFontFamily, fontSize = 14.sp, color = Color.Gray)
+                TextButton(onClick = onRegisterClick) {
+                    Text("회원가입", fontFamily = UnivsFontFamily, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                }
             }
         }
     }

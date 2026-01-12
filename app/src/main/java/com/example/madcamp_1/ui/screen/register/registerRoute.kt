@@ -20,6 +20,7 @@ fun RegisterRoute(
         email = email,
         username = username,
         password = password,
+        errorEvent = viewModel.errorEvent,
         onSchoolChange = { viewModel.onSchoolChange(it) },
         onEmailChange = { viewModel.onEmailChange(it) },
         onUsernameChange = { viewModel.onUsernameChange(it) },

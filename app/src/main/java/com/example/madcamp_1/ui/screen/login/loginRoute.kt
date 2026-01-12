@@ -11,19 +11,16 @@ fun LoginRoute(
     onLoginSuccess: () -> Unit,
     viewModel: LoginViewModel = viewModel()
 ) {
-    // ViewModel의 상태를 관찰
     val username by viewModel.username.collectAsState()
     val password by viewModel.password.collectAsState()
 
-    // UI(Screen) 호출
     LoginScreen(
         username = username,
         password = password,
+        errorEvent = viewModel.errorEvent, // ViewModel의 에러 흐름 연결
         onUsernameChange = { viewModel.onUsernameChange(it) },
         onPasswordChange = { viewModel.onPasswordChange(it) },
-        onLoginClick = {
-            viewModel.login(onSuccess = onLoginSuccess)
-        },
+        onLoginClick = { viewModel.login(onSuccess = onLoginSuccess) },
         onRegisterClick = onNavigateToRegister
     )
 }
