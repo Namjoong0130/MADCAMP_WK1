@@ -83,4 +83,9 @@ dependencies {
 
     testImplementation("junit:junit:4.13.2")
     // ... 나머지 테스트 라이브러리 생략
+    // Retrofit (네트워크 통신)
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+    // Coil (이미지 로딩)
+    implementation("io.coil-kt:coil-compose:2.4.0")
 }
