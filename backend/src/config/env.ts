@@ -36,5 +36,8 @@ const EnvSchema = z.object({
   AWS_REGION: z.string().optional(),
   S3_BUCKET: z.string().optional(),
 });
+console.log("[env] NODE_ENV =", nodeEnv);
+console.log("[env] CWD =", process.cwd());
+console.log("[env] picked =", picked);
 
 export const env = EnvSchema.parse(process.env);

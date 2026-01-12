@@ -6,8 +6,8 @@
   "type": "module",
   "scripts": {
   "dev": "NODE_ENV=development tsx watch src/server.ts",
-  "build": "tsc",
   "start": "NODE_ENV=production node dist/server.js",
+  "build": "tsc",
 
   "prisma:generate": "prisma generate",
   "prisma:studio": "prisma studio",
