@@ -1,5 +1,6 @@
 package com.example.madcamp_1.ui.screen.dashboard
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.madcamp_1.data.api.RetrofitClient
@@ -26,27 +27,38 @@ class DashboardViewModel : ViewModel() {
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    // 초기화 시 호출
     init { fetchPosts() }
 
     fun fetchPosts() {
         viewModelScope.launch {
             _isLoading.value = true
             try {
+                Log.d("DashboardDebug", "서버에서 게시글 목록을 가져오는 중...")
                 val response = RetrofitClient.apiService.getPosts()
+
+                Log.d("DashboardDebug", "서버 응답 성공! 아이템 개수: ${response.items.size}")
+
                 _posts.value = response.items.map { item ->
                     Post(
-                        id = item.id.hashCode(), // String을 Int로 변환
+                        id = item.id.hashCode(),
                         title = item.title,
                         content = item.content,
-                        category = item.tags.firstOrNull()?.name ?: "소통",
+                        // [수정] item.tags가 null인지 먼저 체크하고 firstOrNull 호출
+                        category = item.tags?.firstOrNull()?.tag?.name ?: "소통",
                         timestamp = parseIsoDate(item.createdAt),
                         author = item.author.nickname,
-                        imageUri = item.medias.firstOrNull()?.url, // 서버에 저장된 Base64 URL
+                        // [수정] item.medias가 null인지 체크
+                        imageUri = item.medias?.firstOrNull()?.url,
                         likes = item.likeCount
                     )
                 }
-            } catch (e: Exception) { e.printStackTrace() }
-            finally { _isLoading.value = false }
+            } catch (e: Exception) {
+                Log.e("DashboardDebug", "게시글 로드 실패: ${e.message}")
+                e.printStackTrace()
+            } finally {
+                _isLoading.value = false
+            }
         }
     }
 

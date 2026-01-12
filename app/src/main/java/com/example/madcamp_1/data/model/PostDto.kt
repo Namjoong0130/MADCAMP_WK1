@@ -27,10 +27,16 @@ data class PostListItem(
     val content: String,
     val createdAt: String,
     val author: AuthorDto,
-    val medias: List<MediaResponse>,
-    val tags: List<TagDto>,
-    val likeCount: Int // <--- 여기에 이 이름으로 존재해야 ViewModel에서 빨간 줄이 사라집니다.
+    // [수정] 서버에서 필드가 안 올 수 있으므로 ?를 붙여 nullable로 변경
+    val medias: List<MediaResponse>?,
+    val tags: List<TagDto>?,
+    val likeCount: Int = 0
 )
 
 data class AuthorDto(val nickname: String)
-data class TagDto(val name: String)
+data class TagDto(
+    val tag: TagDetailDto?
+)
+data class TagDetailDto(
+    val name: String
+)
