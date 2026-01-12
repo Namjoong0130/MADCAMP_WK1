@@ -168,17 +168,34 @@ fun RegisterScreen(
             modifier = Modifier.fillMaxWidth().height(52.dp),
             shape = RoundedCornerShape(12.dp)
         ) {
-            Text("회원가입 완료", fontFamily = UnivsFontFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            Text("회원가입", fontFamily = UnivsFontFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp)
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        TextButton(onClick = onBackClick) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center, // 가로 중앙 정렬
+            verticalAlignment = Alignment.CenterVertically // 세로 중앙 정렬 (글자 높이 맞춤)
+        ) {
             Text(
-                text = "이미 계정이 있나요? 로그인으로 돌아가기",
+                text = "이미 계정이 있나요? ",
                 fontFamily = UnivsFontFamily,
+                fontSize = 14.sp,
                 color = Color.Gray
             )
+            TextButton(
+                onClick = onBackClick,
+                contentPadding = PaddingValues(0.dp) // 텍스트 간격 밀착을 위해 기본 여백 제거
+            ) {
+                Text(
+                    text = "로그인으로 돌아가기",
+                    fontFamily = UnivsFontFamily,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold, // 강조를 위해 굵게 설정 가능
+                    color = MaterialTheme.colorScheme.primary // 브랜드 색상 적용
+                )
+            }
         }
     }
 }

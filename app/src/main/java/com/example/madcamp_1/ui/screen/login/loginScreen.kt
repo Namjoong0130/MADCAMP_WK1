@@ -10,6 +10,7 @@ import androidx.compose.ui.text.font.FontFamily // 추가
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.madcamp_1.ui.theme.UnivsFontFamily
 
 @Composable
 fun LoginScreen(
@@ -25,7 +26,7 @@ fun LoginScreen(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(text = "로그인", style = MaterialTheme.typography.headlineMedium)
+        Text(text = "로그인", fontFamily = UnivsFontFamily, fontSize = 34.sp)
 
         Spacer(modifier = Modifier.height(32.dp))
 
@@ -60,12 +61,30 @@ fun LoginScreen(
             onClick = onLoginClick,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("로그인하기")
+            Text("로그인하기", fontFamily = UnivsFontFamily)
         }
 
-        // 회원가입 버튼
-        TextButton(onClick = onRegisterClick) {
-            Text("계정이 없으신가요? 회원가입")
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically // 텍스트와 버튼의 높이 정렬
+        ) {
+            Text(
+                text = "계정이 없으신가요? ",
+                fontSize = 14.sp,
+                // 필요 시 fontFamily = UnivsFontFamily 추가
+            )
+            TextButton(
+                onClick = onRegisterClick,
+                contentPadding = PaddingValues(0.dp) // 버튼 내부 기본 여백 제거로 텍스트 밀착
+            ) {
+                Text(
+                    text = "회원가입",
+                    fontFamily = UnivsFontFamily,
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
         }
     }
 }
