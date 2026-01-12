@@ -34,55 +34,74 @@ fun ScheduleScreen(
 
     Column(modifier = Modifier.fillMaxSize().background(Color(0xFFF8F9FA)).padding(16.dp)) {
 
-        // --- 상단 헤더 영역 (로고 상단, 이름 하단) ---
+        // --- 상단 헤더 영역 (정렬 및 크기 최적화) ---
         Row(
-            modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 20.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically // 점수판과 유저 정보의 중앙을 맞춤
         ) {
-            Column(verticalArrangement = Arrangement.Center) {
-
+            // 왼쪽: 유저 정보 및 학교 로고
+            Column(
+                verticalArrangement = Arrangement.spacedBy(2.dp), // 로고와 이름 사이 간격 밀착
+                horizontalAlignment = Alignment.Start
+            ) {
+                // 학교 로고 크기 확대 (20dp -> 45dp)
                 Image(
                     painter = painterResource(id = if (userSchool == "POSTECH") R.drawable.postech else R.drawable.kaist),
                     contentDescription = userSchool,
-                    modifier = Modifier.height(20.dp), // 로고 크기 대폭 확대
+                    modifier = Modifier.height(30.dp),
                     contentScale = ContentScale.Fit
                 )
 
-                Spacer(modifier = Modifier.height(3.dp))
-
-                // 1. 학교 로고 (크기를 키우고 상단에 배치)
+                // 사람 이름 폰트 크기 축소 (headlineSmall -> 20.sp)
                 Text(
-                    text = userName + "님",
-                    style = MaterialTheme.typography.headlineSmall,
+                    text = " ${userName}님",
+                    fontSize = 15.sp,
                     fontWeight = FontWeight.ExtraBold,
-                    color = Color.DarkGray
+                    color = Color.DarkGray,
+                    modifier = Modifier.padding(start = 2.dp) // 로고 라인과 정렬
                 )
             }
 
-            // 3. 스코어보드 (디자인 개선)
+            // 오른쪽: 점수보드 (대칭 및 간격 압축)
             Surface(
                 shape = RoundedCornerShape(20.dp),
                 color = Color.White,
                 shadowElevation = 4.dp
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 0.dp),
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp), // 세로 간격 최소화
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Image(painter = painterResource(id = R.drawable.kaist), contentDescription = null, modifier = Modifier.size(60.dp))
-                    Text(
-                        text = " $kScore : $pScore  ",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Black,
-                        color = Color.Black
+                    // KAIST 로고
+                    Image(
+                        painter = painterResource(id = R.drawable.kaist),
+                        contentDescription = null,
+                        modifier = Modifier.size(60.dp)
                     )
-                    Image(painter = painterResource(id = R.drawable.postech), contentDescription = null, modifier = Modifier.size(80.dp))
+
+                    // 점수 텍스트 (로고 크기에 맞춰 살짝 키움)
+                    Text(
+                        text = " $kScore : $pScore ",
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Black,
+                        color = Color.Black,
+                        modifier = Modifier.padding(horizontal = 2.dp)
+                    )
+
+                    // POSTECH 로고 (KAIST와 크기 통일하여 대칭 확보)
+                    Image(
+                        painter = painterResource(id = R.drawable.postech),
+                        contentDescription = null,
+                        modifier = Modifier.size(60.dp)
+                    )
                 }
             }
         }
 
-        // --- 일정표 영역 ---
+        // --- 일정표 영역 (기존 코드 유지) ---
         BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
@@ -126,13 +145,11 @@ fun ScheduleScreen(
                                 val topMargin = (event.startHour - startHour) * hourHeight.value
                                 val eventHeight = event.duration * hourHeight.value
 
-                                // 가독성 해결: 파스텔톤 배경 + 진한 텍스트 조합
                                 Surface(
                                     modifier = Modifier
                                         .padding(top = topMargin.dp, start = 4.dp, end = 4.dp)
                                         .fillMaxWidth()
                                         .height(eventHeight.dp),
-                                    // 배경은 연하게(파스텔), 테두리는 진하게 하여 대비 생성
                                     color = event.color.copy(alpha = 0.2f),
                                     shape = RoundedCornerShape(10.dp),
                                     border = androidx.compose.foundation.BorderStroke(1.5.dp, event.color.copy(alpha = 0.6f))
@@ -141,7 +158,6 @@ fun ScheduleScreen(
                                         Text(
                                             text = event.name,
                                             fontSize = 12.sp,
-                                            // 텍스트를 배경보다 훨씬 진한 색으로 설정하여 가독성 확보
                                             color = event.color.copy(alpha = 1f),
                                             fontWeight = FontWeight.ExtraBold,
                                             lineHeight = 14.sp
