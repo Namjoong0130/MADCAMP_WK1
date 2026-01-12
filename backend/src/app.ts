@@ -17,6 +17,7 @@ export function createApp() {
   app.use(morgan("dev"));
 
   app.get(["/health", "/api/health"], (_req, res) => res.json({ ok: true }));
+  app.get("/", (_req, res) => res.json({ ok: true, name: "madcamp-backend" }));
 
   // ✅ Swagger/OpenAPI (docs/openapi.yaml 기준)
   const openapiPath = path.resolve(process.cwd(), "docs", "openapi.yaml");
