@@ -33,29 +33,31 @@ import com.example.madcamp_1.ui.screen.infoselect.SelectRoute
 import com.example.madcamp_1.ui.screen.schedule.ScheduleRoute
 import com.example.madcamp_1.ui.screen.write.WriteRoute
 import com.example.madcamp_1.ui.theme.UnivsFontFamily
+import com.example.madcamp_1.ui.screen.dashboard.DashboardScreen
 
 @Composable
 fun MainScreen() {
     val innerNavController = rememberNavController()
     val navBackStackEntry by innerNavController.currentBackStackEntryAsState()
-    val currentRoute = navBackStackEntry?.destination?.route
+    val currentDestination = navBackStackEntry?.destination
+    val currentRoute = currentDestination?.route
 
     val schoolId = AuthManager.getSchoolId()
     val isPostech = schoolId.contains("postech", ignoreCase = true)
 
     val brandColor = if (isPostech) Color(0xFFE0224E) else Color(0xFF005EB8)
     val brandPastel = if (isPostech) Color(0xFFFFEBEE) else Color(0xFFE3F2FD)
+
+    // 시인성을 위해 선택되지 않은 상태의 색상을 훨씬 진한 회색으로 설정
     val unselectedColor = Color(0xFF424242)
 
-    // 탭/글쓰기/상세에서 같은 VM을 공유하기 위해 MainScreen에서 1회 생성
     val dashboardViewModel: DashboardViewModel = viewModel()
-
-    // write, article에서는 bottomBar 숨김
-    val showBottomBar = currentRoute != "write" && (currentRoute?.startsWith("article") != true)
+    val showBottomBar = currentRoute != "write" && currentRoute?.startsWith("article") == false
 
     Scaffold(
         bottomBar = {
             if (showBottomBar) {
+                // NavigationBar 자체의 패딩을 제거하여 내부 아이템이 잘리지 않게 함
                 NavigationBar(
                     containerColor = Color.White,
                     tonalElevation = 0.dp,
@@ -86,16 +88,18 @@ fun MainScreen() {
                                         modifier = Modifier.size(24.dp),
                                         tint = if (isSelected) brandColor else unselectedColor
                                     )
-                                    Spacer(Modifier.height(4.dp))
+                                    Spacer(modifier = Modifier.height(4.dp))
                                     Text(
                                         text = label,
                                         fontFamily = UnivsFontFamily,
                                         fontSize = 11.sp,
-                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                        fontWeight = if (isSelected) FontWeight.Black else FontWeight.Bold,
                                         color = if (isSelected) brandColor else unselectedColor
                                     )
                                 }
                             },
+                            // label 파라미터를 비우고 icon 파라미터 안에 Column으로 합쳐서
+                            // 기본 NavigationBarItem의 높이 계산 오류(잘림 현상)를 방지합니다.
                             label = null,
                             colors = NavigationBarItemDefaults.colors(
                                 indicatorColor = brandPastel
@@ -112,10 +116,15 @@ fun MainScreen() {
         NavHost(
             navController = innerNavController,
             startDestination = "schedule",
-            modifier = Modifier.padding(innerPadding)
-        ) {
-            composable("schedule") { ScheduleRoute() }
-
+            modifier = Modifier.padding(innerPadding)){
+            composable("schedule") {
+                ScheduleRoute(
+                    onNavigateToInfo = { category ->
+                        // "축구", "해킹" 등의 문자열을 가지고 이동합니다.
+                        innerNavController.navigate("info/$category")
+                    }
+                )
+            }
             composable("dashboard") {
                 DashboardRoute(
                     onNavigateToWrite = { innerNavController.navigate("write") },
@@ -126,9 +135,7 @@ fun MainScreen() {
                     dashboardViewModel = dashboardViewModel
                 )
             }
-
             composable("select") { SelectRoute(navController = innerNavController) }
-
             composable(
                 route = "info/{category}",
                 arguments = listOf(navArgument("category") { type = NavType.StringType })
@@ -136,14 +143,12 @@ fun MainScreen() {
                 val category = backStackEntry.arguments?.getString("category") ?: ""
                 InfoRoute(category = category, navController = innerNavController)
             }
-
             composable("write") {
                 WriteRoute(
-                    onBack = { innerNavController.popBackStack() },
-                    dashboardViewModel = dashboardViewModel
+                    dashboardViewModel = dashboardViewModel,
+                    onBack = { innerNavController.popBackStack() }
                 )
             }
-
             composable(
                 route = "article/{postId}",
                 arguments = listOf(navArgument("postId") { type = NavType.StringType })
