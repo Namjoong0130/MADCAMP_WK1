@@ -1,0 +1,23 @@
+Index: app/src/main/java/com/example/madcamp_1/ui/navigation/NavGraph.kt
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>package com.example.madcamp_1.ui.navigation\n\nimport android.net.Uri\nimport androidx.compose.runtime.Composable\nimport androidx.navigation.NavType\nimport androidx.navigation.compose.NavHost\nimport androidx.navigation.compose.composable\nimport androidx.navigation.compose.rememberNavController\nimport androidx.navigation.navArgument\nimport com.example.madcamp_1.ui.screen.article.ArticleRoute\nimport com.example.madcamp_1.ui.screen.dashboard.DashboardRoute\nimport com.example.madcamp_1.ui.screen.write.WriteRoute\n\nobject Routes {\n    const val DASHBOARD = \"dashboard\"\n    const val WRITE = \"write\"\n    const val ARTICLE = \"article\"\n    const val ARTICLE_WITH_ID = \"article/{postId}\"\n}\n\n@Composable\nfun NavGraph() {\n    val navController = rememberNavController()\n\n    NavHost(\n        navController = navController,\n        startDestination = Routes.DASHBOARD\n    ) {\n        composable(Routes.DASHBOARD) {\n            DashboardRoute(\n                onNavigateToWrite = { navController.navigate(Routes.WRITE) },\n                onNavigateToArticle = { postId ->\n                    val encoded = Uri.encode(postId)\n                    navController.navigate(\"${Routes.ARTICLE}/$encoded\")\n                }\n            )\n        }\n\n        composable(Routes.WRITE) {\n            WriteRoute(onBack = { navController.popBackStack() })\n        }\n\n        composable(\n            route = Routes.ARTICLE_WITH_ID,\n            arguments = listOf(navArgument(\"postId\") { type = NavType.StringType })\n        ) { backStackEntry ->\n            val postId = backStackEntry.arguments?.getString(\"postId\").orEmpty()\n            ArticleRoute(\n                postId = postId,\n                onBack = { navController.popBackStack() }\n            )\n        }\n    }\n}\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/app/src/main/java/com/example/madcamp_1/ui/navigation/NavGraph.kt b/app/src/main/java/com/example/madcamp_1/ui/navigation/NavGraph.kt
+--- a/app/src/main/java/com/example/madcamp_1/ui/navigation/NavGraph.kt	(revision fe6f79b11ddff15c4987c886dd4dc5dfccec573b)
++++ b/app/src/main/java/com/example/madcamp_1/ui/navigation/NavGraph.kt	(date 1768275814955)
+@@ -37,7 +37,11 @@
+         }
+ 
+         composable(Routes.WRITE) {
+-            WriteRoute(onBack = { navController.popBackStack() })
++            WriteRoute(
++                onBack = { navController.popBackStack() },
++                dashboardViewModel = TODO(),
++                viewModel = TODO()
++            )
+         }
+ 
+         composable(
