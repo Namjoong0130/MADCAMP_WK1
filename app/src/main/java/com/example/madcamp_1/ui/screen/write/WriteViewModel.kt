@@ -17,9 +17,9 @@ import java.io.ByteArrayOutputStream
 class WriteViewModel : ViewModel() {
     var title by mutableStateOf("")
     var content by mutableStateOf("")
-    var selectedTag by mutableStateOf("소통")
+    var selectedTag by mutableStateOf("공지") // 초기값 설정
     var selectedImageUri by mutableStateOf<Uri?>(null)
-    var isAnonymous by mutableStateOf(true) // ✅ 익명 여부 상태 (기본값 true)
+    var isAnonymous by mutableStateOf(true)
     var isUploading by mutableStateOf(false)
 
     fun onTitleChange(newText: String) { title = newText }
@@ -28,7 +28,7 @@ class WriteViewModel : ViewModel() {
     }
     fun onTagSelect(tag: String) { selectedTag = tag }
     fun onImageSelected(uri: Uri?) { selectedImageUri = uri }
-    fun toggleAnonymous(value: Boolean) { isAnonymous = value } // ✅ 토글 함수
+    fun toggleAnonymous(value: Boolean) { isAnonymous = value }
 
     fun clearFields() {
         title = ""; content = ""; selectedTag = "공지"; selectedImageUri = null; isAnonymous = true
@@ -48,12 +48,14 @@ class WriteViewModel : ViewModel() {
                     mediaIds.add(mediaResponse.id)
                 }
 
+                // ✅ nickname 필드 전송 중단 (서버 에러 원인)
                 RetrofitClient.apiService.createPost(
                     PostCreateRequest(
                         title = title,
                         content = content,
+                        visibility = "PUBLIC", // 서버가 허용하는 "PUBLIC" 고정
+                        tagIds = listOf(selectedTag), // 서버가 "공지" 등 이름을 ID로 쓴다고 가정
                         mediaIds = mediaIds
-                        // 서버 API 명세에 따라 isAnonymous 값 전달 로직 추가 가능
                     )
                 )
                 clearFields()
