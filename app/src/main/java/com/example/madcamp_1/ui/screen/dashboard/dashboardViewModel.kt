@@ -53,12 +53,16 @@ class DashboardViewModel : ViewModel() {
                         content = item.content,
                         category = item.tags?.firstOrNull()?.tag?.name ?: "소통",
                         timestamp = parseIsoDateToMillis(item.createdAt),
-                        author = item.author.nickname, // PostListItem.author는 non-null:contentReference[oaicite:5]{index=5}
-                        imageUri = medias.firstOrNull()?.url, // ✅ 대시보드 썸네일
+                        author = item.author?.nickname ?: "익명",
+                        authorSchoolId = item.author?.schoolId,      // ✅ 추가
+                        imageUri = medias.firstOrNull()?.url,
                         likes = item.likeCount,
-                        medias = medias // ✅ 상세에서 활용
+                        likedByMe = item.likedByMe ?: false,         // ✅ 서버가 주면 사용
+                        commentCount = item.commentCount ?: 0,        // ✅ 서버가 주면 사용
+                        medias = medias
                     )
                 }
+
             } catch (e: Exception) {
                 Log.e("DashboardDebug", "게시글 로드 실패: ${e.message}")
                 e.printStackTrace()

@@ -1,3 +1,4 @@
+// Post.kt
 package com.example.madcamp_1.ui.screen.dashboard
 
 import java.text.SimpleDateFormat
@@ -5,11 +6,10 @@ import java.util.*
 
 data class Media(
     val id: String,
-    val url: String
+    val url: String?
 )
 
 data class Post(
-    // ✅ 서버 postId 그대로 사용 (상세 라우팅에 필수)
     val id: String,
     val title: String,
     val content: String,
@@ -17,12 +17,16 @@ data class Post(
     val timestamp: Long,
     val author: String = "익명",
 
-    // ✅ 대시보드 썸네일용: medias의 첫 번째 url을 여기에 넣어두면 화면단이 단순해집니다.
+    // ✅ 학교 뱃지/댓글 정렬 등에 필요
+    val authorSchoolId: String? = null,
+
     val imageUri: String? = null,
 
     val likes: Int = 0,
+    val likedByMe: Boolean = false,
 
-    // ✅ 상세에서 여러 장 보여주기 위한 원본 리스트
+    val commentCount: Int = 0,
+
     val medias: List<Media> = emptyList()
 )
 
