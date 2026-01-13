@@ -1,6 +1,7 @@
 package com.example.madcamp_1.ui.screen.schedule
 
 import android.annotation.SuppressLint
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -10,13 +11,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.madcamp_1.R
 import com.example.madcamp_1.ui.theme.UnivsFontFamily
 
 @SuppressLint("UnusedBoxWithConstraintsScope")
@@ -24,7 +26,8 @@ import com.example.madcamp_1.ui.theme.UnivsFontFamily
 fun ScheduleScreen(
     events: List<ScheduleEvent>,
     userName: String,
-    userSchool: String,
+    userLogoRes: Int,
+    userSchoolDisplayName: String,
     pScore: Int,
     kScore: Int
 ) {
@@ -33,148 +36,139 @@ fun ScheduleScreen(
     val endHour = 24
     val totalHours = endHour - startHour
 
-    Column(modifier = Modifier.fillMaxSize().background(Color(0xFFF8F9FA)).padding(16.dp)) {
-
-        // --- 상단 헤더 영역 (정렬 최적화) ---
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFFF8F9FA))
+            .padding(16.dp)
+    ) {
+        // --- 상단 헤더 영역 ---
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 20.dp),
+                .padding(bottom = 20.dp, top = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // 왼쪽: 유저 정보 및 학교 로고
-            Column(
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-                horizontalAlignment = Alignment.Start
-            ) {
-                // 학교 로고 (가독성을 위해 높이 35dp로 살짝 조정)
-                Image(
-                    painter = painterResource(id = if (userSchool == "POSTECH") R.drawable.postech else R.drawable.kaist),
-                    contentDescription = userSchool,
-                    modifier = Modifier.height(35.dp),
-                    contentScale = ContentScale.Fit
-                )
-
-                // 사람 이름 (요청대로 폰트 크기 살짝 축소: 15sp -> 14sp)
-                Text(
-                    text = "${userName}님",
-                    // MaterialTheme.typography를 사용하면 자동으로 UnivsFontFamily가 적용됩니다.
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = Color.DarkGray,
-                    modifier = Modifier.padding(start = 2.dp)
-                )
-            }
-
-            // 오른쪽: 점수보드 (대칭 및 간격 압축)
-            Surface(
-                shape = RoundedCornerShape(20.dp),
-                color = Color.White,
-                shadowElevation = 2.dp
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Surface(
+                    modifier = Modifier.size(46.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    color = Color.White,
+                    shadowElevation = 2.dp,
+                    border = BorderStroke(1.dp, Color(0xFFEEEEEE))
                 ) {
-                    // KAIST 로고 (60dp)
                     Image(
-                        painter = painterResource(id = R.drawable.kaist),
-                        contentDescription = null,
-                        modifier = Modifier.size(60.dp)
-                    )
-
-                    // 점수 텍스트
-                    Text(
-                        text = " $kScore : $pScore ",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Black,
-                        color = Color.Black
-                    )
-
-                    // POSTECH 로고 (대칭을 위해 60dp로 통일)
-                    Image(
-                        painter = painterResource(id = R.drawable.postech),
-                        contentDescription = null,
-                        modifier = Modifier.size(60.dp)
+                        painter = painterResource(id = userLogoRes),
+                        contentDescription = "Logo",
+                        modifier = Modifier.padding(8.dp),
+                        contentScale = ContentScale.Fit
                     )
                 }
+                Spacer(modifier = Modifier.width(12.dp))
+                Column {
+                    Text(text = "${userName}님", fontFamily = UnivsFontFamily, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                    Text(text = userSchoolDisplayName, fontFamily = UnivsFontFamily, fontSize = 12.sp, color = Color.Gray)
+                }
+            }
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .background(Color.White, RoundedCornerShape(20.dp))
+                    .border(1.dp, Color(0xFFEEEEEE), RoundedCornerShape(20.dp))
+                    .padding(horizontal = 12.dp, vertical = 6.dp)
+            ) {
+                ScoreBadge("POSTECH ", pScore, Color(0xFFE0224E))
+                Text(" : ", color = Color.LightGray, modifier = Modifier.padding(horizontal = 4.dp))
+                ScoreBadge("KAIST ", kScore, Color(0xFF005EB8))
             }
         }
 
-        // --- 일정표 영역 (가독성 대폭 개선) ---
+        // --- 시간표 컨텐츠 (수정된 로직) ---
         BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
+                .clip(RoundedCornerShape(20.dp))
                 .border(1.dp, Color(0xFFE0E0E0), RoundedCornerShape(20.dp))
-                .background(Color.White, RoundedCornerShape(20.dp))
+                .background(Color.White)
         ) {
-            val totalHeight = maxHeight
-            val hourHeight = (totalHeight - 44.dp) / totalHours
+            val totalHeightDp = maxHeight
+            val headerHeight = 44.dp
+            val usableHeightDp = totalHeightDp - headerHeight
+            val hourHeight = usableHeightDp / totalHours
 
             Column {
                 // 요일 헤더
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(44.dp)
-                        .background(Color(0xFFF1F3F5), RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp))
+                        .height(headerHeight)
+                        .background(Color(0xFFF1F3F5))
                 ) {
                     Spacer(modifier = Modifier.width(40.dp))
                     days.forEach { day ->
                         Box(modifier = Modifier.weight(1f).fillMaxHeight(), contentAlignment = Alignment.Center) {
-                            Text(day, fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF495057))
+                            Text(day, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF495057))
                         }
                     }
                 }
 
-                // 시간 축 및 이벤트 본문
-                Row(modifier = Modifier.fillMaxWidth()) {
-                    // 시간 축
-                    Column(modifier = Modifier.width(40.dp)) {
-                        (startHour..endHour).forEach { hour ->
-                            Box(modifier = Modifier.height(hourHeight).fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
-                                Text("$hour", fontSize = 10.sp, color = Color.LightGray, modifier = Modifier.padding(top = 4.dp))
+                Row(modifier = Modifier.fillMaxWidth().fillMaxHeight()) {
+                    // 왼쪽 시간축
+                    Column(
+                        modifier = Modifier
+                            .width(40.dp)
+                            .fillMaxHeight()
+                            .background(Color(0xFFFBFBFC))
+                    ) {
+                        for (hour in startHour until endHour) {
+                            Box(
+                                modifier = Modifier
+                                    .height(hourHeight)
+                                    .fillMaxWidth(),
+                                contentAlignment = Alignment.TopCenter
+                            ) {
+                                Text(
+                                    text = hour.toString(),
+                                    fontSize = 11.sp,
+                                    color = Color.LightGray,
+                                    modifier = Modifier.padding(top = 4.dp)
+                                )
                             }
                         }
                     }
 
-                    // 이벤트 영역
-                    days.forEachIndexed { dIndex, _ ->
-                        Box(modifier = Modifier.weight(1f).height(hourHeight * totalHours).border(0.5.dp, Color(0xFFF1F3F5))) {
-                            events.filter { it.dayIndex == dIndex }.forEach { event ->
-                                val topMargin = (event.startHour - startHour) * hourHeight.value
-                                val eventHeight = event.duration * hourHeight.value
+                    // 일정 본문 영역
+                    Row(modifier = Modifier.fillMaxSize()) {
+                        days.forEachIndexed { dIndex, _ ->
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxHeight()
+                                    .border(0.5.dp, Color(0xFFF1F3F5))
+                            ) {
+                                events.filter { it.dayIndex == dIndex }.forEach { event ->
+                                    val topOffset = (event.startHour - startHour) * hourHeight.value
+                                    val heightSize = event.duration * hourHeight.value
 
-                                // [핵심 수정] 가독성을 높인 카드 디자인
-                                Surface(
-                                    modifier = Modifier
-                                        .padding(top = topMargin.dp, start = 3.dp, end = 3.dp)
-                                        .fillMaxWidth()
-                                        .height(eventHeight.dp),
-                                    // 배경은 아주 연하게 (파스텔 느낌 유지)
-                                    color = event.color.copy(alpha = 0.12f),
-                                    shape = RoundedCornerShape(6.dp),
-                                    // 테두리도 아주 연하게
-                                    border = androidx.compose.foundation.BorderStroke(0.5.dp, event.color.copy(alpha = 0.3f))
-                                ) {
-                                    Row(modifier = Modifier.fillMaxSize()) {
-                                        // 1. 왼쪽 컬러 포인트 바 (노랑/초록이라도 이 바를 통해 종목 구분이 확실해짐)
-                                        Box(
-                                            modifier = Modifier
-                                                .width(4.dp)
-                                                .fillMaxHeight()
-                                                .background(event.color) // 원색 그대로 사용
-                                        )
-
-                                        // 2. 텍스트 영역
-                                        Box(modifier = Modifier.padding(5.dp)) {
+                                    Surface(
+                                        modifier = Modifier
+                                            .padding(horizontal = 2.dp)
+                                            .offset(y = topOffset.dp)
+                                            .fillMaxWidth()
+                                            .height(heightSize.dp),
+                                        color = event.color.copy(alpha = 0.2f),
+                                        shape = RoundedCornerShape(8.dp),
+                                        border = BorderStroke(1.5.dp, event.color.copy(alpha = 0.6f))
+                                    ) {
+                                        Box(modifier = Modifier.padding(4.dp)) {
                                             Text(
                                                 text = event.name,
-                                                // 직접 fontFamily를 지정할 수도 있습니다.
-                                                fontFamily = UnivsFontFamily,
-                                                fontSize = 12.sp,
+                                                fontSize = 11.sp,
+                                                color = event.color.copy(alpha = 1f),
                                                 fontWeight = FontWeight.ExtraBold,
-                                                color = event.color.copy(alpha = 1f)
+                                                lineHeight = 12.sp
                                             )
                                         }
                                     }
@@ -185,5 +179,13 @@ fun ScheduleScreen(
                 }
             }
         }
+    }
+}
+@Composable
+fun ScoreBadge(label: String, score: Int, color: Color) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(text = label, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = color)
+        Spacer(modifier = Modifier.width(4.dp))
+        Text(text = score.toString(), fontSize = 16.sp, fontWeight = FontWeight.Black)
     }
 }

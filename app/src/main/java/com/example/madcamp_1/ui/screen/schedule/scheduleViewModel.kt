@@ -2,6 +2,8 @@ package com.example.madcamp_1.ui.screen.schedule
 
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
+import com.example.madcamp_1.R
+import com.example.madcamp_1.data.utils.AuthManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
@@ -14,13 +16,30 @@ data class ScheduleEvent(
 )
 
 class ScheduleViewModel : ViewModel() {
-    // 학교 정보 (예시 데이터)
-    val userName = "김철수"
-    val userSchool = "POSTECH" // "POSTECH" 또는 "KAIST"
+    // AuthManager의 정보를 Flow에 담아 노출
+    private val _userName = MutableStateFlow(AuthManager.getFormattedNickname())
+    val userName = _userName.asStateFlow()
+
+    private val _userSchoolId = MutableStateFlow(AuthManager.getSchoolId())
+    val userSchoolId = _userSchoolId.asStateFlow()
+
     val postechScore = 7
     val kaistScore = 0
 
-    // 파스텔 톤 색상 정의
+    fun getSchoolLogo(schoolId: String): Int {
+        return if (schoolId.contains("postech", ignoreCase = true)) R.drawable.postech else R.drawable.kaist
+    }
+
+    fun getSchoolDisplayName(schoolId: String): String {
+        return if (schoolId.contains("postech", ignoreCase = true)) "POSTECH" else "KAIST"
+    }
+
+    // 화면 진입 시 최신 정보를 갱신하고 싶을 때 호출
+    fun refreshUserData() {
+        _userName.value = AuthManager.getFormattedNickname()
+        _userSchoolId.value = AuthManager.getSchoolId()
+    }
+
     private val pastelRed = Color(0xFFFFB3BA)
     private val pastelOrange = Color(0xFFFFDFBA)
     private val pastelYellow = Color(0xFFFFFFBA)

@@ -3,6 +3,7 @@ package com.example.madcamp_1.ui.screen.login
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.madcamp_1.data.api.RetrofitClient
+import com.example.madcamp_1.data.model.AuthResponse
 import com.example.madcamp_1.data.model.LoginRequest
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,34 +26,36 @@ class LoginViewModel : ViewModel() {
     fun onUsernameChange(newName: String) { _username.value = newName }
     fun onPasswordChange(newPw: String) { _password.value = newPw }
 
-    fun login(onSuccess: () -> Unit) {
+    /**
+     * 수정된 login 함수: 성공 시 서버로부터 받은 AuthResponse를 콜백으로 넘겨줍니다.
+     */
+    fun login(onSuccess: (AuthResponse) -> Unit) {
         viewModelScope.launch {
             val email = _username.value
             val pwd = _password.value
 
-            // [검증 1순위] 이메일 형식 확인 (로그 상 test@kaist.ac.kr 형태 필요)
+            // 1. 유효성 검사
             if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
                 _errorEvent.emit("올바른 이메일 형식이 아닙니다.")
                 return@launch
             }
 
-            // [검증 2순위] 비밀번호 길이 확인 (최소 6자)
             if (pwd.length < 6) {
                 _errorEvent.emit("비밀번호는 6자리 이상이어야 합니다.")
                 return@launch
             }
 
             try {
-                // [검증 3순위] 서버 통신 및 인증 결과 확인
+                // 2. 서버 통신 (PostApiService 호출)
                 val response = RetrofitClient.apiService.login(
                     LoginRequest(email = email, password = pwd)
                 )
 
-                val token = response.accessToken?.toString() ?: ""
-                RetrofitClient.authToken = token
-                onSuccess()
+                // 3. 성공 시 AuthResponse 전체를 Route로 전달
+                onSuccess(response)
+
             } catch (e: HttpException) {
-                // 로그에서 확인된 401 Unauthorized 에러 대응
+                // HTTP 에러 코드별 대응
                 val message = when (e.code()) {
                     401 -> "이메일 또는 비밀번호가 잘못되었습니다."
                     404 -> "존재하지 않는 계정입니다."
