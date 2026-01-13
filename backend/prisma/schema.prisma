@@ -27,8 +27,7 @@ model User {
   refreshTokens   RefreshToken[]
   shareLinks      ShareLink[]
   school          School?        @relation(fields: [schoolId], references: [id])
-  cheerTaps        CheerTap[]     @relation("UserCheerTaps")
-
+  cheerTaps       CheerTap[]     @relation("UserCheerTaps")
 
   @@index([schoolId], map: "User_schoolId_fkey")
 }
@@ -206,19 +205,18 @@ model InfoTag {
 }
 
 model Media {
-  id         String      @id @default(cuid())
-  uploaderId String?
-  url        String   @db.LongText
-  mimeType   String?
-  size       Int?
-  width      Int?
-  height     Int?
-  createdAt  DateTime    @default(now())
-  deletedAt  DateTime?
-  uploader   User?       @relation("UserMedia", fields: [uploaderId], references: [id])
-  postMedias PostMedia[]
+  id        String   @id @default(cuid())
+  url       String   @db.LongText // ✅ 핵심: base64(data URL) 저장하려면 LongText 필요
+  mimeType  String?  @db.VarChar(100)
+  size      Int?
+  width     Int?
+  height    Int?
+  createdAt DateTime @default(now())
 
-  @@index([uploaderId])
+  uploaderId String?
+  uploader   User?   @relation("UserMedia", fields: [uploaderId], references: [id])
+
+  posts PostMedia[]
 }
 
 model PostMedia {
@@ -273,16 +271,15 @@ model ShareLink {
   @@index([createdById])
 }
 
-
 // ===========================
 // Cheer(응원전) Feature
 // ===========================
 
 model CheerTeam {
-  id        String      @id @default(cuid())
-  name      String      @unique              // 예: "KAIST", "POSTECH"
-  logoUrl   String?     @db.LongText         // 로고도 base64/URL 모두 가능하게
-  createdAt DateTime    @default(now())
+  id        String    @id @default(cuid())
+  name      String    @unique // 예: "KAIST", "POSTECH"
+  logoUrl   String?   @db.LongText // 로고도 base64/URL 모두 가능하게
+  createdAt DateTime  @default(now())
   deletedAt DateTime?
 
   // 관계
@@ -292,12 +289,12 @@ model CheerTeam {
 }
 
 model CheerMatch {
-  id        String   @id @default(cuid())
-  title     String                 // 예: "카포전 응원전 2026"
-  isActive  Boolean  @default(true)
+  id        String    @id @default(cuid())
+  title     String // 예: "카포전 응원전 2026"
+  isActive  Boolean   @default(true)
   startsAt  DateTime?
   endsAt    DateTime?
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
   deletedAt DateTime?
 
   // 두 팀(상대팀 경쟁 구조)
@@ -306,7 +303,7 @@ model CheerMatch {
   homeTeam   CheerTeam @relation("HomeTeam", fields: [homeTeamId], references: [id])
   awayTeam   CheerTeam @relation("AwayTeam", fields: [awayTeamId], references: [id])
 
-  taps      CheerTap[]
+  taps CheerTap[]
 
   @@index([isActive])
   @@index([homeTeamId])
@@ -325,9 +322,9 @@ model CheerTap {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  match     CheerMatch @relation(fields: [matchId], references: [id])
-  team      CheerTeam  @relation(fields: [teamId], references: [id])
-  user      User       @relation("UserCheerTaps", fields: [userId], references: [id])
+  match CheerMatch @relation(fields: [matchId], references: [id])
+  team  CheerTeam  @relation(fields: [teamId], references: [id])
+  user  User       @relation("UserCheerTaps", fields: [userId], references: [id])
 
   // 한 유저는 한 매치에서 한 팀에 대해 1개의 row만 유지하고 count만 증가
   @@unique([matchId, teamId, userId])
