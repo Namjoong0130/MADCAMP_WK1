@@ -1,7 +1,7 @@
 package com.example.madcamp_1.data.model
 
 data class LoginRequest(
-    val email: String,    // 서버는 email을 원합니다
+    val email: String,
     val password: String
 )
 
@@ -14,10 +14,8 @@ data class RegisterRequest(
 
 data class AuthResponse(
     val user: AuthUser,
-    // String에서 Any?로 바꿉니다.
-    // 서버가 "{}"(객체)를 주든 "token"(문자열)을 주든 일단 다 받아내기 위함입니다.
-    val accessToken: Any?,
-    val refreshToken: Any?
+    val accessToken: String,
+    val refreshToken: String
 )
 
 data class AuthUser(

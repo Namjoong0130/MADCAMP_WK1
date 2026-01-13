@@ -27,16 +27,38 @@ data class PostListItem(
     val content: String,
     val createdAt: String,
     val author: AuthorDto,
-    // [수정] 서버에서 필드가 안 올 수 있으므로 ?를 붙여 nullable로 변경
+    // 서버에서 필드가 안 올 수 있으므로 nullable
     val medias: List<MediaResponse>?,
     val tags: List<TagDto>?,
     val likeCount: Int = 0
 )
 
+// ✅ 작성자 DTO (상세에서도 최소 nickname만 쓰면 충분)
 data class AuthorDto(val nickname: String)
+
+// ✅ 태그 DTO
 data class TagDto(
     val tag: TagDetailDto?
 )
 data class TagDetailDto(
     val name: String
+)
+
+// ===============================
+// ✅ 게시글 상세 응답 DTO (추가)
+// ===============================
+data class PostResponse(
+    val id: String,
+    val title: String,
+    val content: String,
+    val createdAt: String,
+    // 서버가 author를 안 줄 수도 있으니 nullable 허용
+    val author: AuthorDto? = null,
+
+    // 상세에서도 medias/tags가 없을 수 있으니 nullable/기본값 처리
+    val medias: List<MediaResponse>? = null,
+    val tags: List<TagDto>? = null,
+
+    // likeCount가 없다면 0으로
+    val likeCount: Int = 0
 )

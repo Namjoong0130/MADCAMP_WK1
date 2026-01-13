@@ -9,53 +9,51 @@ import com.example.madcamp_1.ui.screen.initial.InitRoute
 import com.example.madcamp_1.ui.screen.login.LoginRoute
 import com.example.madcamp_1.ui.screen.register.RegisterRoute
 
+object Routes {
+    const val INIT = "init"
+    const val LOGIN = "login"
+    const val REGISTER = "register"
+    const val MAIN = "main"
+}
+
 @Composable
 fun NavGraph() {
     val navController = rememberNavController()
 
-    // 최상위 NavHost: 앱의 큰 상태(인증 전/후)를 전환합니다.
     NavHost(
         navController = navController,
-        startDestination = "init" // 앱을 켜면 무조건 init부터 시작
+        startDestination = Routes.INIT
     ) {
-        // 1. 초기 스플래시 화면 (3초 대기 후 이동)
-        composable("init") {
+        composable(Routes.INIT) {
             InitRoute(
                 onNavigateToLogin = {
-                    navController.navigate("login") {
-                        // 뒤로가기 시 다시 init으로 오지 않도록 스택에서 제거
-                        popUpTo("init") { inclusive = true }
+                    navController.navigate(Routes.LOGIN) {
+                        popUpTo(Routes.INIT) { inclusive = true }
+                        launchSingleTop = true
                     }
                 }
             )
         }
 
-        // 2. 로그인 화면
-        composable("login") {
+        composable(Routes.LOGIN) {
             LoginRoute(
-                onNavigateToRegister = {
-                    navController.navigate("register")
-                },
+                onNavigateToRegister = { navController.navigate(Routes.REGISTER) },
                 onLoginSuccess = {
-                    // 로그인 성공 시 'main_screen'으로 이동하고 로그인 화면은 제거
-                    navController.navigate("main_screen") {
-                        popUpTo("login") { inclusive = true }
+                    navController.navigate(Routes.MAIN) {
+                        popUpTo(Routes.LOGIN) { inclusive = true }
+                        launchSingleTop = true
                     }
                 }
             )
         }
 
-        // 3. 회원가입 화면
-        composable("register") {
+        composable(Routes.REGISTER) {
             RegisterRoute(
-                onBackToLogin = {
-                    navController.popBackStack()
-                }
+                onBackToLogin = { navController.popBackStack() }
             )
         }
 
-        // 4. 메인 화면 (로그인 후의 모든 화면을 담는 컨테이너)
-        composable("main_screen") {
+        composable(Routes.MAIN) {
             MainScreen()
         }
     }
