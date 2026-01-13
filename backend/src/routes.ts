@@ -42,3 +42,5 @@ routes.use("/media", mediaRouter);
 routes.use("/device-tokens", deviceTokensRouter);
 routes.use("/notifications", notificationsRouter);
 routes.use("/share-links", shareLinksRouter);
+routes.use("/tags", tagsRouter);
+

@@ -1,3 +1,4 @@
+// prisma/seed.ts
 import "../src/config/env.js";
 import {
   PrismaClient,
@@ -7,19 +8,16 @@ import {
   NotificationType,
   ShareEntityType,
 } from "../src/generated/prisma/client.js";
-
 import { PrismaMariaDb } from "@prisma/adapter-mariadb";
 
 const prisma = new PrismaClient({
   adapter: new PrismaMariaDb(process.env.DATABASE_URL!),
 });
 
-
-
 /**
  * seed에서 "고정 id"를 쓰면:
- * - ShareLink.entityId 같은 참조도 안정적으로 고정 가능
- * - seed 반복 실행 시에도 매번 같은 레코드를 upsert로 관리 가능
+ * - 참조 관계(PostTag/PostMedia/ShareLink 등)가 안정적
+ * - seed 반복 실행 시 upsert/skipDuplicates로 관리 가능
  */
 const IDS = {
   schools: {
@@ -34,11 +32,10 @@ const IDS = {
     POSTECH_1: "seed_user_postech_1",
   },
   tags: {
-    FOOD: "seed_tag_food",
-    CAFE: "seed_tag_cafe",
-    TRANSPORT: "seed_tag_transport",
-    EVENT: "seed_tag_event",
-    NOTICE: "seed_tag_notice",
+    QNA: "Q&A",
+    TIP: "꿀팁",
+    COMMUNITY: "소통",
+    NOTICE: "공지",
   },
   infoCategories: {
     FOOD: "seed_info_cat_food",
@@ -58,72 +55,99 @@ const IDS = {
   },
   schedules: {
     OPENING: "seed_schedule_opening",
-    ESPORTS: "seed_schedule_esports",
-    AI: "seed_schedule_ai",
-    SHOW: "seed_schedule_show",
-    SOCCER: "seed_schedule_soccer",
-    BASEBALL: "seed_schedule_baseball",
-    QUIZ: "seed_schedule_quiz",
-    BASKETBALL: "seed_schedule_basketball",
-    CLOSING: "seed_schedule_closing",
   },
   posts: {
     WELCOME: "seed_post_welcome",
     NOTICE_1: "seed_post_notice_1",
+    WITH_HTTP_IMAGE: "seed_post_with_http_image",
+    WITH_BASE64_IMAGE: "seed_post_with_base64_image",
   },
   medias: {
     POSTER_1: "seed_media_poster_1",
+    HTTP_POSTER: "seed_media_http_poster",
+    BASE64_PNG_1PX: "seed_media_base64_png_1px",
   },
   shareLinks: {
-    SCH_OPENING: "seed-schedule-opening",
-    INFO_KAIMARU: "seed-info-kaimaru",
-    CHEER_KAIST: "seed-cheer-kaist-1",
     POST_WELCOME: "seed-post-welcome",
   },
 };
 
 /** bcrypt 해시처럼 보이는 더미 문자열(로그인 구현 전용) */
-const DUMMY_PASSWORD_HASH = "$2b$10$seedseedseedseedseedseedseedseedseedseedseedseedse";
+const DUMMY_PASSWORD_HASH =
+  "$2b$10$seedseedseedseedseedseedseedseedseedseedseedseedseedse";
+
+/**
+ * 1x1 PNG base64 (아주 짧아서 seed 검증에 최적)
+ * - prefix(data:image/png;base64,) 포함 "data URL" 형태
+ */
+const BASE64_1PX_PNG_DATA_URL =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+X2Z8AAAAASUVORK5CYII=";
 
 async function main() {
-  /**
-   * 0) (선택) 기존 seed 데이터만 "안전하게" 정리
-   * - FK 관계 때문에 전체 deleteMany는 순서가 중요합니다.
-   * - 여기서는 seed가 만든 것만 지우도록 id prefix를 고정해 두었기 때문에
-   *   where 조건으로 seed 데이터만 제거합니다.
-   */
-  // 조인/참조 먼저 제거
-  await prisma.postLike.deleteMany({ where: { postId: { in: Object.values(IDS.posts) } } }).catch(() => {});
-  await prisma.comment.deleteMany({ where: { postId: { in: Object.values(IDS.posts) } } }).catch(() => {});
-  await prisma.postMedia.deleteMany({ where: { postId: { in: Object.values(IDS.posts) } } }).catch(() => {});
-  await prisma.postTag.deleteMany({ where: { postId: { in: Object.values(IDS.posts) } } }).catch(() => {});
-  await prisma.infoTag.deleteMany({ where: { infoId: { in: Object.values(IDS.infos) } } }).catch(() => {});
-
-  await prisma.notification.deleteMany({ where: { userId: { in: Object.values(IDS.users) } } }).catch(() => {});
-  await prisma.deviceToken.deleteMany({ where: { userId: { in: Object.values(IDS.users) } } }).catch(() => {});
-  await prisma.refreshToken.deleteMany({ where: { userId: { in: Object.values(IDS.users) } } }).catch(() => {});
-
-  // ShareLink는 slug가 unique라 slug로만 정리하는게 가장 안전
-  await prisma.shareLink
-    .deleteMany({
-      where: { slug: { in: Object.values(IDS.shareLinks) } },
-    })
+  // -----------------------------
+  // 0) seed 데이터만 "안전 정리"
+  // -----------------------------
+  await prisma.postLike
+    .deleteMany({ where: { postId: { in: Object.values(IDS.posts) } } })
+    .catch(() => {});
+  await prisma.comment
+    .deleteMany({ where: { postId: { in: Object.values(IDS.posts) } } })
+    .catch(() => {});
+  await prisma.postMedia
+    .deleteMany({ where: { postId: { in: Object.values(IDS.posts) } } })
+    .catch(() => {});
+  await prisma.postTag
+    .deleteMany({ where: { postId: { in: Object.values(IDS.posts) } } })
+    .catch(() => {});
+  await prisma.infoTag
+    .deleteMany({ where: { infoId: { in: Object.values(IDS.infos) } } })
     .catch(() => {});
 
-  // 본 엔티티
-  await prisma.post.deleteMany({ where: { id: { in: Object.values(IDS.posts) } } }).catch(() => {});
-  await prisma.media.deleteMany({ where: { id: { in: Object.values(IDS.medias) } } }).catch(() => {});
-  await prisma.schedule.deleteMany({ where: { id: { in: Object.values(IDS.schedules) } } }).catch(() => {});
-  await prisma.cheerMethod.deleteMany({ where: { id: { in: Object.values(IDS.cheerMethods) } } }).catch(() => {});
-  await prisma.info.deleteMany({ where: { id: { in: Object.values(IDS.infos) } } }).catch(() => {});
-  await prisma.infoCategory.deleteMany({ where: { id: { in: Object.values(IDS.infoCategories) } } }).catch(() => {});
-  await prisma.tag.deleteMany({ where: { id: { in: Object.values(IDS.tags) } } }).catch(() => {});
-  await prisma.user.deleteMany({ where: { id: { in: Object.values(IDS.users) } } }).catch(() => {});
-  await prisma.school.deleteMany({ where: { id: { in: Object.values(IDS.schools) } } }).catch(() => {});
+  await prisma.notification
+    .deleteMany({ where: { userId: { in: Object.values(IDS.users) } } })
+    .catch(() => {});
+  await prisma.deviceToken
+    .deleteMany({ where: { userId: { in: Object.values(IDS.users) } } })
+    .catch(() => {});
+  await prisma.refreshToken
+    .deleteMany({ where: { userId: { in: Object.values(IDS.users) } } })
+    .catch(() => {});
 
-  /**
-   * 1) School
-   */
+  await prisma.shareLink
+    .deleteMany({ where: { slug: { in: Object.values(IDS.shareLinks) } } })
+    .catch(() => {});
+
+  await prisma.post
+    .deleteMany({ where: { id: { in: Object.values(IDS.posts) } } })
+    .catch(() => {});
+  await prisma.media
+    .deleteMany({ where: { id: { in: Object.values(IDS.medias) } } })
+    .catch(() => {});
+  await prisma.schedule
+    .deleteMany({ where: { id: { in: Object.values(IDS.schedules) } } })
+    .catch(() => {});
+  await prisma.cheerMethod
+    .deleteMany({ where: { id: { in: Object.values(IDS.cheerMethods) } } })
+    .catch(() => {});
+  await prisma.info
+    .deleteMany({ where: { id: { in: Object.values(IDS.infos) } } })
+    .catch(() => {});
+  await prisma.infoCategory
+    .deleteMany({ where: { id: { in: Object.values(IDS.infoCategories) } } })
+    .catch(() => {});
+  await prisma.tag
+    .deleteMany({ where: { id: { in: Object.values(IDS.tags) } } })
+    .catch(() => {});
+  await prisma.user
+    .deleteMany({ where: { id: { in: Object.values(IDS.users) } } })
+    .catch(() => {});
+  await prisma.school
+    .deleteMany({ where: { id: { in: Object.values(IDS.schools) } } })
+    .catch(() => {});
+
+  // -----------------------------
+  // 1) School
+  // -----------------------------
   await prisma.school.createMany({
     data: [
       { id: IDS.schools.KAIST, name: "KAIST", shortName: "KAIST" },
@@ -134,9 +158,9 @@ async function main() {
     skipDuplicates: true,
   });
 
-  /**
-   * 2) User (필수: email unique, passwordHash, nickname)
-   */
+  // -----------------------------
+  // 2) User
+  // -----------------------------
   await prisma.user.createMany({
     data: [
       {
@@ -167,23 +191,22 @@ async function main() {
     skipDuplicates: true,
   });
 
-  /**
-   * 3) Tag
-   */
+  // -----------------------------
+  // 3) Tag (id를 사람이 읽는 문자열로 고정)
+  // -----------------------------
   await prisma.tag.createMany({
     data: [
-      { id: IDS.tags.FOOD, name: "맛집" },
-      { id: IDS.tags.CAFE, name: "카페" },
-      { id: IDS.tags.TRANSPORT, name: "교통" },
-      { id: IDS.tags.EVENT, name: "행사" },
+      { id: IDS.tags.QNA, name: "Q&A" },
+      { id: IDS.tags.TIP, name: "꿀팁" },
+      { id: IDS.tags.COMMUNITY, name: "소통" },
       { id: IDS.tags.NOTICE, name: "공지" },
     ],
     skipDuplicates: true,
   });
 
-  /**
-   * 4) InfoCategory
-   */
+  // -----------------------------
+  // 4) InfoCategory / Info / InfoTag (필요하면 유지)
+  // -----------------------------
   await prisma.infoCategory.createMany({
     data: [
       { id: IDS.infoCategories.FOOD, name: "식사", sortOrder: 1 },
@@ -194,9 +217,6 @@ async function main() {
     skipDuplicates: true,
   });
 
-  /**
-   * 5) Info
-   */
   await prisma.info.createMany({
     data: [
       {
@@ -210,83 +230,18 @@ async function main() {
         lat: 36.373769873203166,
         lng: 127.35919617360102,
       },
-      {
-        id: IDS.infos.DINING_TIP,
-        categoryId: IDS.infoCategories.FOOD,
-        title: "식사 팁",
-        content: "카포전 기간에는 학내 식당이 붐빕니다. 11:30 이전/13:30 이후 추천.",
-        sourceUrl: null,
-        locationName: null,
-        address: null,
-        lat: null,
-        lng: null,
-      },
-      {
-        id: IDS.infos.CAFE_SPOT,
-        categoryId: IDS.infoCategories.CAFE,
-        title: "카페 추천",
-        content: "대화/미팅용 좌석 많은 카페를 우선 추천합니다. 소음 적은 시간대 체크!",
-        sourceUrl: null,
-        locationName: null,
-        address: null,
-        lat: null,
-        lng: null,
-      },
-      {
-        id: IDS.infos.BUS_GUIDE,
-        categoryId: IDS.infoCategories.TRANSPORT,
-        title: "교통 가이드",
-        content: "대전역/유성터미널 → KAIST 이동은 버스/택시 혼합이 편합니다.",
-        sourceUrl: null,
-        locationName: null,
-        address: null,
-        lat: null,
-        lng: null,
-      },
     ],
     skipDuplicates: true,
   });
 
-  /**
-   * 6) InfoTag (M:N)
-   * - InfoTag는 @@id([infoId, tagId]) 복합키라 createMany가 가장 간단
-   */
   await prisma.infoTag.createMany({
-    data: [
-      { infoId: IDS.infos.KAIMARU, tagId: IDS.tags.FOOD },
-      { infoId: IDS.infos.DINING_TIP, tagId: IDS.tags.FOOD },
-      { infoId: IDS.infos.BUS_GUIDE, tagId: IDS.tags.TRANSPORT },
-      { infoId: IDS.infos.CAFE_SPOT, tagId: IDS.tags.CAFE },
-    ],
+    data: [{ infoId: IDS.infos.KAIMARU, tagId: IDS.tags.COMMUNITY }],
     skipDuplicates: true,
   });
 
-  /**
-   * 7) CheerMethod
-   */
-  await prisma.cheerMethod.createMany({
-    data: [
-      {
-        id: IDS.cheerMethods.KAIST_1,
-        schoolId: IDS.schools.KAIST,
-        title: "KAIST 응원 구호",
-        content: "KAIST! KAIST! 파이팅!",
-        mediaUrl: null,
-      },
-      {
-        id: IDS.cheerMethods.POSTECH_1,
-        schoolId: IDS.schools.POSTECH,
-        title: "POSTECH 응원 구호",
-        content: "포스텍! 포스텍! 파이팅!",
-        mediaUrl: null,
-      },
-    ],
-    skipDuplicates: true,
-  });
-
-  /**
-   * 8) Schedule
-   */
+  // -----------------------------
+  // 5) Schedule (최소 1개만)
+  // -----------------------------
   await prisma.schedule.createMany({
     data: [
       {
@@ -298,111 +253,7 @@ async function main() {
         homeSchoolId: IDS.schools.KAIST,
         awaySchoolId: IDS.schools.POSTECH,
         locationName: "KAIST 스포츠컴플렉스",
-        address: "대한민국 대전광역시 유성구 온천2동 대학로 291",
-        lat: 36.372389,
-        lng: 127.361556,
-      },
-      {
-        id: IDS.schedules.ESPORTS,
-        title: "e-Sports",
-        description: "e-Sports",
-        startAt: new Date("2025-09-19T14:30:00.000Z"),
-        endAt: new Date("2025-09-19T17:00:00.000Z"),
-        homeSchoolId: IDS.schools.KAIST,
-        awaySchoolId: IDS.schools.POSTECH,
-        locationName: "대전이스포츠경기장",
-        address: "대한민국 대전광역시 유성구 대덕대로 480 대전 이스포츠경기장",
-        lat: 36.376904,
-        lng: 127.3872357,
-      },
-      {
-        id: IDS.schedules.AI,
-        title: "AI",
-        description: "AI",
-        startAt: new Date("2025-09-19T17:00:00.000Z"),
-        endAt: new Date("2025-09-19T18:00:00.000Z"),
-        homeSchoolId: IDS.schools.KAIST,
-        awaySchoolId: IDS.schools.POSTECH,
-        locationName: "대전이스포츠경기장",
-        address: "대한민국 대전광역시 유성구 대덕대로 480 대전 이스포츠경기장",
-        lat: 36.376904,
-        lng: 127.3872357,
-      },
-      {
-        id: IDS.schedules.SHOW,
-        title: "교류공연 & 영상제",
-        description: "교류공연 & 영상제",
-        startAt: new Date("2025-09-19T18:45:00.000Z"),
-        endAt: new Date("2025-09-19T20:45:00.000Z"),
-        homeSchoolId: IDS.schools.KAIST,
-        awaySchoolId: IDS.schools.POSTECH,
-        locationName: "KAIST 스포츠컴플렉스",
-        address: "대한민국 대전광역시 유성구 온천2동 대학로 291",
-        lat: 36.372389,
-        lng: 127.361556,
-      },
-      {
-        id: IDS.schedules.SOCCER,
-        title: "축구",
-        description: "축구",
-        startAt: new Date("2025-09-19T21:30:00.000Z"),
-        endAt: new Date("2025-09-19T23:30:00.000Z"),
-        homeSchoolId: IDS.schools.KAIST,
-        awaySchoolId: IDS.schools.POSTECH,
-        locationName: "KAIST 대운동장",
-        address: "대전광역시 유성구 대학로 291",
-        lat: 36.36955117920298,
-        lng: 127.36847011943173,
-      },
-      {
-        id: IDS.schedules.BASEBALL,
-        title: "야구",
-        description: "야구",
-        startAt: new Date("2025-09-20T10:00:00.000Z"),
-        endAt: new Date("2025-09-20T12:30:00.000Z"),
-        homeSchoolId: IDS.schools.KAIST,
-        awaySchoolId: IDS.schools.POSTECH,
-        locationName: "북측운동장",
-        address: "대전광역시 유성구 대학로 291",
-        lat: 36.372351932127145,
-        lng: 127.36022599968764,
-      },
-      {
-        id: IDS.schedules.QUIZ,
-        title: "과학퀴즈",
-        description: "과학퀴즈",
-        startAt: new Date("2025-09-20T13:30:00.000Z"),
-        endAt: new Date("2025-09-20T15:00:00.000Z"),
-        homeSchoolId: IDS.schools.KAIST,
-        awaySchoolId: IDS.schools.POSTECH,
-        locationName: "KAIST 스포츠컴플렉스",
-        address: "대한민국 대전광역시 유성구 온천2동 대학로 291",
-        lat: 36.372389,
-        lng: 127.361556,
-      },
-      {
-        id: IDS.schedules.BASKETBALL,
-        title: "농구",
-        description: "농구",
-        startAt: new Date("2025-09-20T15:30:00.000Z"),
-        endAt: new Date("2025-09-20T18:00:00.000Z"),
-        homeSchoolId: IDS.schools.KAIST,
-        awaySchoolId: IDS.schools.POSTECH,
-        locationName: "KAIST 스포츠컴플렉스",
-        address: "대한민국 대전광역시 유성구 온천2동 대학로 291",
-        lat: 36.372389,
-        lng: 127.361556,
-      },
-      {
-        id: IDS.schedules.CLOSING,
-        title: "폐막식",
-        description: "폐막식",
-        startAt: new Date("2025-09-20T19:00:00.000Z"),
-        endAt: new Date("2025-09-20T22:00:00.000Z"),
-        homeSchoolId: IDS.schools.KAIST,
-        awaySchoolId: IDS.schools.POSTECH,
-        locationName: "KAIST 스포츠컴플렉스",
-        address: "대한민국 대전광역시 유성구 온천2동 대학로 291",
+        address: "대한민국 대전광역시 유성구 대학로 291",
         lat: 36.372389,
         lng: 127.361556,
       },
@@ -410,9 +261,12 @@ async function main() {
     skipDuplicates: true,
   });
 
-  /**
-   * 9) Media + PostMedia
-   */
+  // -----------------------------
+  // 6) Media 3개:
+  //    - 기존 포스터(HTTP)
+  //    - 검증용 HTTP
+  //    - 검증용 Base64(data URL)
+  // -----------------------------
   await prisma.media.createMany({
     data: [
       {
@@ -424,10 +278,34 @@ async function main() {
         width: 1080,
         height: 1080,
       },
+      {
+        id: IDS.medias.HTTP_POSTER,
+        uploaderId: IDS.users.ADMIN,
+        url: "https://example.com/seed/poster_http.png",
+        mimeType: "image/png",
+        size: 1000,
+        width: 100,
+        height: 100,
+      },
+      {
+        id: IDS.medias.BASE64_PNG_1PX,
+        uploaderId: IDS.users.ADMIN,
+        url: BASE64_1PX_PNG_DATA_URL, // ✅ 핵심: data URL 저장
+        mimeType: "image/png",
+        size: BASE64_1PX_PNG_DATA_URL.length,
+        width: 1,
+        height: 1,
+      },
     ],
     skipDuplicates: true,
   });
 
+  // -----------------------------
+  // 7) Post 4개:
+  //    - 기존(WELCOME/NOTICE)
+  //    - 검증용 HTTP 이미지 포함 글
+  //    - 검증용 Base64 이미지 포함 글
+  // -----------------------------
   await prisma.post.createMany({
     data: [
       {
@@ -436,42 +314,71 @@ async function main() {
         title: "카포전 안내",
         content: "환영합니다! 일정/정보/응원법을 확인해보세요.",
         visibility: Visibility.PUBLIC,
-        likeCount: 0,
-        commentCount: 0,
       },
       {
         id: IDS.posts.NOTICE_1,
         authorId: IDS.users.ADMIN,
         title: "공지: 이동/안전 유의",
-        content: "행사 기간 이동 시 안전에 유의해 주세요. 분실물/긴급 연락처는 추후 공지합니다.",
+        content:
+          "행사 기간 이동 시 안전에 유의해 주세요. 분실물/긴급 연락처는 추후 공지합니다.",
         visibility: Visibility.PUBLIC,
-        likeCount: 0,
-        commentCount: 0,
+      },
+      {
+        id: IDS.posts.WITH_HTTP_IMAGE,
+        authorId: IDS.users.ADMIN,
+        title: "HTTP 이미지 포함 글(검증용)",
+        content: "medias[0].url이 https:// 로 시작하는지 확인하세요.",
+        visibility: Visibility.PUBLIC,
+      },
+      {
+        id: IDS.posts.WITH_BASE64_IMAGE,
+        authorId: IDS.users.ADMIN,
+        title: "Base64 이미지 포함 글(검증용)",
+        content: "medias[0].url이 data:image/png;base64, 로 시작하는지 확인하세요.",
+        visibility: Visibility.PUBLIC,
       },
     ],
     skipDuplicates: true,
   });
 
+  // PostMedia 연결
   await prisma.postMedia.createMany({
-    data: [{ postId: IDS.posts.WELCOME, mediaId: IDS.medias.POSTER_1, sortOrder: 0 }],
-    skipDuplicates: true,
-  });
-
-  /**
-   * 10) PostTag (M:N)
-   */
-  await prisma.postTag.createMany({
     data: [
-      { postId: IDS.posts.WELCOME, tagId: IDS.tags.EVENT },
-      { postId: IDS.posts.WELCOME, tagId: IDS.tags.NOTICE },
-      { postId: IDS.posts.NOTICE_1, tagId: IDS.tags.NOTICE },
+      { postId: IDS.posts.WELCOME, mediaId: IDS.medias.POSTER_1, sortOrder: 0 },
+      {
+        postId: IDS.posts.WITH_HTTP_IMAGE,
+        mediaId: IDS.medias.HTTP_POSTER,
+        sortOrder: 0,
+      },
+      {
+        postId: IDS.posts.WITH_BASE64_IMAGE,
+        mediaId: IDS.medias.BASE64_PNG_1PX,
+        sortOrder: 0,
+      },
     ],
     skipDuplicates: true,
   });
 
-  /**
-   * 11) Comment + Like (간단 샘플)
-   */
+  // PostTag 연결 (검증 포인트: 서로 다른 태그 조합)
+  await prisma.postTag.createMany({
+    data: [
+      { postId: IDS.posts.WELCOME, tagId: IDS.tags.TIP },
+      { postId: IDS.posts.WELCOME, tagId: IDS.tags.NOTICE },
+      { postId: IDS.posts.NOTICE_1, tagId: IDS.tags.NOTICE },
+
+      // ✅ 검증용
+      { postId: IDS.posts.WITH_HTTP_IMAGE, tagId: IDS.tags.NOTICE },
+      { postId: IDS.posts.WITH_HTTP_IMAGE, tagId: IDS.tags.COMMUNITY },
+
+      { postId: IDS.posts.WITH_BASE64_IMAGE, tagId: IDS.tags.QNA },
+      { postId: IDS.posts.WITH_BASE64_IMAGE, tagId: IDS.tags.COMMUNITY },
+    ],
+    skipDuplicates: true,
+  });
+
+  // -----------------------------
+  // 8) Comment/Like 카운트(선택)
+  // -----------------------------
   const c1 = await prisma.comment.create({
     data: {
       postId: IDS.posts.WELCOME,
@@ -489,7 +396,6 @@ async function main() {
     },
   });
 
-  // 좋아요: 복합 PK (userId, postId)
   await prisma.postLike
     .create({
       data: {
@@ -497,19 +403,22 @@ async function main() {
         postId: IDS.posts.WELCOME,
       },
     })
-    .catch(() => {}); // 이미 있으면 무시
+    .catch(() => {});
 
-  // 카운트 필드는 트리거가 없으니 seed에서 맞춰주기(선택)
-  const welcomeCommentCount = await prisma.comment.count({ where: { postId: IDS.posts.WELCOME } });
-  const welcomeLikeCount = await prisma.postLike.count({ where: { postId: IDS.posts.WELCOME } });
+  const welcomeCommentCount = await prisma.comment.count({
+    where: { postId: IDS.posts.WELCOME },
+  });
+  const welcomeLikeCount = await prisma.postLike.count({
+    where: { postId: IDS.posts.WELCOME },
+  });
   await prisma.post.update({
     where: { id: IDS.posts.WELCOME },
     data: { commentCount: welcomeCommentCount, likeCount: welcomeLikeCount },
   });
 
-  /**
-   * 12) DeviceToken + Notification (샘플)
-   */
+  // -----------------------------
+  // 9) DeviceToken + Notification (샘플)
+  // -----------------------------
   await prisma.deviceToken
     .create({
       data: {
@@ -530,59 +439,29 @@ async function main() {
         body: "카포전 일정/정보를 확인해 보세요.",
         dataJson: JSON.stringify({ screen: "home" }),
       },
-      {
-        userId: IDS.users.POSTECH_1,
-        type: NotificationType.GENERAL,
-        title: "행사 안내",
-        body: "교류전 정보가 업데이트되었습니다.",
-        dataJson: JSON.stringify({ screen: "info" }),
-      },
     ],
     skipDuplicates: true,
   });
 
-  /**
-   * 13) ShareLink (중요: entityType/entityId/slug 구조)
-   * - slug @unique 이므로 upsert 기준으로 가장 안전
-   */
-  const shareLinks = [
-    {
-      slug: IDS.shareLinks.SCH_OPENING,
-      entityType: ShareEntityType.SCHEDULE,
-      entityId: IDS.schedules.OPENING,
-      expiresAt: null as Date | null,
+  // -----------------------------
+  // 10) ShareLink (샘플)
+  // -----------------------------
+  await prisma.shareLink.upsert({
+    where: { slug: IDS.shareLinks.POST_WELCOME },
+    update: {
+      entityType: ShareEntityType.POST,
+      entityId: IDS.posts.WELCOME,
+      expiresAt: null,
       createdById: IDS.users.ADMIN,
     },
-    {
-      slug: IDS.shareLinks.INFO_KAIMARU,
-      entityType: ShareEntityType.INFO,
-      entityId: IDS.infos.KAIMARU,
-      expiresAt: null as Date | null,
-      createdById: IDS.users.ADMIN,
-    },
-    {
-      slug: IDS.shareLinks.CHEER_KAIST,
-      entityType: ShareEntityType.CHEER,
-      entityId: IDS.cheerMethods.KAIST_1,
-      expiresAt: null as Date | null,
-      createdById: IDS.users.ADMIN,
-    },
-    {
+    create: {
       slug: IDS.shareLinks.POST_WELCOME,
       entityType: ShareEntityType.POST,
       entityId: IDS.posts.WELCOME,
-      expiresAt: null as Date | null,
+      expiresAt: null,
       createdById: IDS.users.ADMIN,
     },
-  ];
-
-  for (const s of shareLinks) {
-    await prisma.shareLink.upsert({
-      where: { slug: s.slug },
-      update: { entityType: s.entityType, entityId: s.entityId, expiresAt: s.expiresAt, createdById: s.createdById },
-      create: { slug: s.slug, entityType: s.entityType, entityId: s.entityId, expiresAt: s.expiresAt, createdById: s.createdById },
-    });
-  }
+  });
 
   console.log("✅ Seed completed");
 }

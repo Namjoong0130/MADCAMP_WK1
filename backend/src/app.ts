@@ -13,7 +13,9 @@ import fs from "fs";
 export function createApp() {
   const app = express();
 
-  app.use(express.json({ limit: "2mb" }));
+  app.use(express.json({ limit: "20mb" }));
+  app.use(express.urlencoded({ extended: true, limit: "20mb" }));
+
   app.use(morgan("dev"));
 
   app.get(["/health", "/api/health"], (_req, res) => res.json({ ok: true }));
