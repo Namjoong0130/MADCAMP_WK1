@@ -30,6 +30,11 @@ class ArticleViewModel : ViewModel() {
                     ?.tag
                     ?.name
                     ?: "소통"
+                val firstUrl = dto.medias?.firstOrNull()?.url
+                Log.d(
+                    "ArticleViewModel",
+                    "post=${dto.id} medias=${dto.medias?.size} urlPrefix=${firstUrl?.take(30)}"
+                )
 
                 _post.value = Post(
                     id = dto.id,

@@ -32,6 +32,10 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.madcamp_1.data.utils.AuthManager
 import com.example.madcamp_1.ui.theme.UnivsFontFamily
+import androidx.compose.foundation.Image
+import androidx.compose.runtime.remember
+import com.example.madcamp_1.ui.util.dataUrlToImageBitmapOrNull
+
 
 // [1] 태그 디자인 데이터 모델
 data class TagUIConfig(
@@ -240,7 +244,6 @@ fun PostItem(post: Post, brandColor: Color, onClick: () -> Unit) {
             if (!post.imageUri.isNullOrBlank()) {
                 Spacer(modifier = Modifier.width(12.dp))
 
-                // ✅ remember와 dataUrlToImageBitmapOrNull 에러 해결 부분
                 val decoded = remember(post.imageUri) {
                     post.imageUri?.let { dataUrlToImageBitmapOrNull(it) }
                 }
@@ -250,7 +253,7 @@ fun PostItem(post: Post, brandColor: Color, onClick: () -> Unit) {
                         bitmap = decoded,
                         contentDescription = null,
                         modifier = Modifier
-                            .size(55.dp)
+                            .size(75.dp) // ✅ 썸네일: 기존 크기 유지(원래값으로)
                             .clip(RoundedCornerShape(12.dp)),
                         contentScale = ContentScale.Crop
                     )
@@ -259,7 +262,7 @@ fun PostItem(post: Post, brandColor: Color, onClick: () -> Unit) {
                         model = post.imageUri,
                         contentDescription = null,
                         modifier = Modifier
-                            .size(55.dp)
+                            .size(75.dp) // ✅ 썸네일: 기존 크기 유지
                             .clip(RoundedCornerShape(12.dp)),
                         contentScale = ContentScale.Crop
                     )

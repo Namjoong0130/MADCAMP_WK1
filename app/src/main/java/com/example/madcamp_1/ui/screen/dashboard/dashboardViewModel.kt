@@ -53,7 +53,11 @@ class DashboardViewModel : ViewModel() {
                 val response = RetrofitClient.apiService.getPosts()
                 Log.d("DashboardDebug", "서버 응답 성공! 아이템 개수: ${response.items.size}")
 
+
                 _posts.value = response.items.map { item ->
+                    val firstUrl = item.medias?.firstOrNull()?.url
+                    Log.d("DashboardDebug", "post=${item.id} medias=${item.medias?.size} urlPrefix=${firstUrl?.take(30)}")
+
                     Post(
                         id = item.id,
                         title = item.title,
@@ -63,7 +67,8 @@ class DashboardViewModel : ViewModel() {
                         timestamp = parseIsoDateToMillis(item.createdAt),
                         author = item.author?.nickname ?: "익명",
                         imageUri = item.medias?.firstOrNull()?.url,
-                        likes = item.likeCount
+                        likes = item.likeCount,
+
                     )
                 }
             } catch (e: Exception) {

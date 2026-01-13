@@ -27,6 +27,7 @@ import coil.compose.AsyncImage
 import com.example.madcamp_1.ui.screen.dashboard.Post
 import com.example.madcamp_1.ui.screen.dashboard.formatPostTime
 import com.example.madcamp_1.ui.theme.UnivsFontFamily
+import com.example.madcamp_1.ui.util.dataUrlToImageBitmapOrNull
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -162,22 +163,5 @@ fun ArticleScreen(post: Post?, onBack: () -> Unit) {
                 )
             }
         }
-    }
-}
-
-/**
- * "data:image/jpeg;base64,...." 같은 data URL을 ImageBitmap으로 변환합니다.
- * - base64가 아니거나 디코딩 실패 시 null (AsyncImage로 폴백)
- */
-private fun dataUrlToImageBitmapOrNull(dataUrl: String): ImageBitmap? {
-    return try {
-        val base64Part = dataUrl.substringAfter("base64,", missingDelimiterValue = "")
-        if (base64Part.isBlank()) return null
-
-        val bytes = Base64.decode(base64Part, Base64.DEFAULT)
-        val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size) ?: return null
-        bitmap.asImageBitmap()
-    } catch (_: Exception) {
-        null
     }
 }
