@@ -60,7 +60,7 @@ fun DashboardScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 0.dp, bottom = padding.calculateBottomPadding()) // 상단 여백 제거
+                .padding(paddingValues = padding) // 상단 여백 제거
                 .padding(horizontal = 16.dp)
         ) {
 
