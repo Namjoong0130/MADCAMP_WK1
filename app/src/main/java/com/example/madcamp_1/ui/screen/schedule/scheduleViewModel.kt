@@ -51,7 +51,7 @@ class ScheduleViewModel : ViewModel() {
         ScheduleEvent("전야제", pastelGreen, 0, 18.0, 4.0),
         ScheduleEvent("개막식", pastelRed, 1, 10.0, 1.5),
         ScheduleEvent("E-sports", pastelOrange, 1, 12.0, 3.0),
-        ScheduleEvent("AI 세션", pastelBlue, 1, 16.0, 2.0),
+        ScheduleEvent("AI", pastelBlue, 1, 16.0, 2.0),
         ScheduleEvent("축구", pastelPurple, 1, 19.0, 3.0),
         ScheduleEvent("야구", pastelOrange, 2, 10.0, 3.0),
         ScheduleEvent("과학퀴즈", pastelYellow, 2, 14.0, 2.0),

@@ -27,6 +27,7 @@ fun DashboardRoute(
         onSearchChange = { viewModel.onSearchTextChange(it) },
         onTagSelect = { viewModel.onTagSelected(it) },
         onNavigateToWrite = onNavigateToWrite,
-        onPostClick = onNavigateToArticle
+        onPostClick = onNavigateToArticle,
+        onRefresh = { viewModel.refreshPosts() },
     )
 }
