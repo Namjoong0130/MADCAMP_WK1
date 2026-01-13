@@ -1,10 +1,12 @@
 package com.example.madcamp_1.ui.screen
 
-import androidx.compose.foundation.background
+import android.net.Uri
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.List
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -15,19 +17,21 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavDestination.Companion.hierarchy
-import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
 import androidx.navigation.compose.*
 import androidx.navigation.navArgument
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.rememberNavController
+import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.compose.currentBackStackEntryAsState
 import com.example.madcamp_1.data.utils.AuthManager
+import com.example.madcamp_1.ui.screen.article.ArticleRoute
 import com.example.madcamp_1.ui.screen.dashboard.DashboardRoute
 import com.example.madcamp_1.ui.screen.dashboard.DashboardViewModel
 import com.example.madcamp_1.ui.screen.info.InfoRoute
-import com.example.madcamp_1.ui.screen.schedule.ScheduleRoute
 import com.example.madcamp_1.ui.screen.infoselect.SelectRoute
+import com.example.madcamp_1.ui.screen.schedule.ScheduleRoute
 import com.example.madcamp_1.ui.screen.write.WriteRoute
-import com.example.madcamp_1.ui.screen.article.ArticleRoute
 import com.example.madcamp_1.ui.theme.UnivsFontFamily
 import com.example.madcamp_1.ui.screen.dashboard.DashboardScreen
 
@@ -70,7 +74,7 @@ fun MainScreen() {
                         val isSelected = if (route == "select") {
                             currentRoute == "select" || currentRoute?.startsWith("info") == true
                         } else {
-                            currentDestination?.hierarchy?.any { it.route == route } == true
+                            currentRoute == route
                         }
 
                         NavigationBarItem(
@@ -113,31 +117,22 @@ fun MainScreen() {
             navController = innerNavController,
             startDestination = "schedule",
             modifier = Modifier.padding(innerPadding)){
-            composable("schedule") { ScheduleRoute() }
-            composable("dashboard") {
-                val searchText by dashboardViewModel.searchText.collectAsState()
-                val selectedTag by dashboardViewModel.selectedTag.collectAsState()
-                val posts by dashboardViewModel.filteredPosts.collectAsState()
-                val isLoading by dashboardViewModel.isLoading.collectAsState()
-
-                DashboardScreen(
-                    searchText = searchText,
-                    selectedTag = selectedTag,
-                    posts = posts,
-                    isLoading = isLoading,
-                    onSearchChange = { dashboardViewModel.onSearchTextChange(it) },
-                    onTagSelect = { dashboardViewModel.onTagSelected(it) },
-                    onNavigateToWrite = { innerNavController.navigate("write") },
-                    onPostClick = { postId: Int -> // 타입을 명시하여 에러 해결
-                        innerNavController.navigate("article/$postId")
-                    },
-                    onRefresh = { dashboardViewModel.refreshPosts() } // [연결]
+            composable("schedule") {
+                ScheduleRoute(
+                    onNavigateToInfo = { category ->
+                        // "축구", "해킹" 등의 문자열을 가지고 이동합니다.
+                        innerNavController.navigate("info/$category")
+                    }
                 )
-
+            }
+            composable("dashboard") {
                 DashboardRoute(
-                    viewModel = dashboardViewModel,
                     onNavigateToWrite = { innerNavController.navigate("write") },
-                    onNavigateToArticle = { postId -> innerNavController.navigate("article/$postId") }
+                    onNavigateToArticle = { postId ->
+                        val encoded = Uri.encode(postId)
+                        innerNavController.navigate("article/$encoded")
+                    },
+                    dashboardViewModel = dashboardViewModel
                 )
             }
             composable("select") { SelectRoute(navController = innerNavController) }
@@ -156,16 +151,19 @@ fun MainScreen() {
             }
             composable(
                 route = "article/{postId}",
-                arguments = listOf(navArgument("postId") { type = NavType.IntType })
+                arguments = listOf(navArgument("postId") { type = NavType.StringType })
             ) { backStackEntry ->
-                val postId = backStackEntry.arguments?.getInt("postId") ?: 0
-                ArticleRoute(postId = postId, onBack = { innerNavController.popBackStack() })
+                val postId = backStackEntry.arguments?.getString("postId").orEmpty()
+                ArticleRoute(
+                    postId = postId,
+                    onBack = { innerNavController.popBackStack() }
+                )
             }
         }
     }
 }
 
-private fun navigateToTab(navController: androidx.navigation.NavHostController, route: String) {
+private fun navigateToTab(navController: NavHostController, route: String) {
     navController.navigate(route) {
         popUpTo(navController.graph.findStartDestination().id) { saveState = true }
         launchSingleTop = true

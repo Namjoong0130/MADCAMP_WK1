@@ -5,7 +5,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 
 @Composable
 fun ArticleRoute(
-    postId: Int,
+    postId: String,
     onBack: () -> Unit,
     viewModel: ArticleViewModel = viewModel()
 ) {
