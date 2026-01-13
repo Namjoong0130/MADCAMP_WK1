@@ -4,13 +4,12 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.madcamp_1.data.api.RetrofitClient
+import com.example.madcamp_1.ui.screen.dashboard.Media
 import com.example.madcamp_1.ui.screen.dashboard.Post
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
-import java.time.OffsetDateTime
-import java.time.format.DateTimeParseException
 import java.util.Locale
 import java.util.TimeZone
 
@@ -30,10 +29,14 @@ class ArticleViewModel : ViewModel() {
                     ?.tag
                     ?.name
                     ?: "소통"
-                val firstUrl = dto.medias?.firstOrNull()?.url
+
+                val medias = dto.medias.orEmpty().map { m ->
+                    Media(id = m.id, url = m.url)
+                }
+
                 Log.d(
                     "ArticleViewModel",
-                    "post=${dto.id} medias=${dto.medias?.size} urlPrefix=${firstUrl?.take(30)}"
+                    "post=${dto.id} medias=${medias.size} urlPrefix=${medias.firstOrNull()?.url?.take(30)}"
                 )
 
                 _post.value = Post(
@@ -43,8 +46,9 @@ class ArticleViewModel : ViewModel() {
                     category = category,
                     timestamp = parseIsoDateToMillis(dto.createdAt),
                     author = dto.author?.nickname ?: "익명",
-                    imageUri = dto.medias?.firstOrNull()?.url,
-                    likes = dto.likeCount
+                    imageUri = medias.firstOrNull()?.url, // (옵션) 대표 1장
+                    likes = dto.likeCount,
+                    medias = medias // ✅ 상세에서 여러 장 표시
                 )
             } catch (e: Exception) {
                 Log.e("ArticleViewModel", "getPostDetail 실패: ${e.message}")
@@ -55,12 +59,6 @@ class ArticleViewModel : ViewModel() {
     }
 
     private fun parseIsoDateToMillis(isoString: String): Long {
-        try {
-            return OffsetDateTime.parse(isoString).toInstant().toEpochMilli()
-        } catch (_: DateTimeParseException) {
-        } catch (_: Exception) {
-        }
-
         return try {
             val f1 = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US)
             f1.timeZone = TimeZone.getTimeZone("UTC")

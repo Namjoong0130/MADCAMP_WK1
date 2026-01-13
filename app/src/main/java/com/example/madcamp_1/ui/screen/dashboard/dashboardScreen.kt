@@ -32,8 +32,6 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.madcamp_1.data.utils.AuthManager
 import com.example.madcamp_1.ui.theme.UnivsFontFamily
-import androidx.compose.foundation.Image
-import androidx.compose.runtime.remember
 import com.example.madcamp_1.ui.util.dataUrlToImageBitmapOrNull
 
 

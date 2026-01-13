@@ -5,6 +5,8 @@ import android.util.Base64
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -14,7 +16,8 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
@@ -27,7 +30,6 @@ import coil.compose.AsyncImage
 import com.example.madcamp_1.ui.screen.dashboard.Post
 import com.example.madcamp_1.ui.screen.dashboard.formatPostTime
 import com.example.madcamp_1.ui.theme.UnivsFontFamily
-import com.example.madcamp_1.ui.util.dataUrlToImageBitmapOrNull
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -47,15 +49,12 @@ fun ArticleScreen(post: Post?, onBack: () -> Unit) {
     ) { padding ->
         if (post == null) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = Color(0xFFC62828))
+                CircularProgressIndicator()
             }
             return@Scaffold
         }
 
-        // base64(data URL) 디코딩 시도
-        val decodedImage = remember(post.imageUri) {
-            post.imageUri?.let { dataUrlToImageBitmapOrNull(it) }
-        }
+        val urls = remember(post.medias) { post.medias.map { it.url } }
 
         Column(
             modifier = Modifier
@@ -96,7 +95,6 @@ fun ArticleScreen(post: Post?, onBack: () -> Unit) {
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // 제목/본문
             Text(
                 text = post.title,
                 fontFamily = UnivsFontFamily,
@@ -115,35 +113,42 @@ fun ArticleScreen(post: Post?, onBack: () -> Unit) {
                 color = Color(0xFF424242)
             )
 
-            // 이미지: base64 우선 → 실패 시 URL/데이터스킴을 Coil로 폴백
-            if (!post.imageUri.isNullOrBlank()) {
-                Spacer(modifier = Modifier.height(24.dp))
+            // ✅ 여러 장 이미지
+            if (urls.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(20.dp))
 
-                if (decodedImage != null) {
-                    Image(
-                        bitmap = decodedImage,
-                        contentDescription = null,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(16.dp)),
-                        contentScale = ContentScale.FillWidth
-                    )
-                } else {
-                    AsyncImage(
-                        model = post.imageUri,
-                        contentDescription = null,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(16.dp)),
-                        contentScale = ContentScale.FillWidth
-                    )
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    items(urls) { u ->
+                        val decoded = remember(u) { dataUrlToImageBitmapOrNull(u) }
+
+                        val cardModifier = Modifier
+                            .width(320.dp)
+                            .heightIn(min = 180.dp, max = 360.dp) // 너무 길어지는 것 방지
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(Color(0xFFF5F5F5))
+
+                        if (decoded != null) {
+                            Image(
+                                bitmap = decoded,
+                                contentDescription = null,
+                                modifier = cardModifier,
+                                contentScale = ContentScale.Fit
+                            )
+                        } else {
+                            AsyncImage(
+                                model = u,
+                                contentDescription = null,
+                                modifier = cardModifier,
+                                contentScale = ContentScale.Fit
+                            )
+                        }
+                    }
                 }
             }
 
             Spacer(modifier = Modifier.height(32.dp))
             HorizontalDivider(color = Color(0xFFF5F5F5))
 
-            // 좋아요
             Row(
                 modifier = Modifier.padding(vertical = 16.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -163,5 +168,18 @@ fun ArticleScreen(post: Post?, onBack: () -> Unit) {
                 )
             }
         }
+    }
+}
+
+private fun dataUrlToImageBitmapOrNull(dataUrl: String): ImageBitmap? {
+    return try {
+        val base64Part = dataUrl.substringAfter("base64,", missingDelimiterValue = "")
+        if (base64Part.isBlank()) return null
+
+        val bytes = Base64.decode(base64Part, Base64.DEFAULT)
+        val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size) ?: return null
+        bitmap.asImageBitmap()
+    } catch (_: Exception) {
+        null
     }
 }

@@ -156,12 +156,10 @@ fun MainScreen() {
                 route = "article/{postId}",
                 arguments = listOf(navArgument("postId") { type = NavType.StringType })
             ) { backStackEntry ->
-                val postId = backStackEntry.arguments?.getString("postId").orEmpty()
-                ArticleRoute(
-                    postId = postId,
-                    onBack = { innerNavController.popBackStack() }
-                )
+                val postId = backStackEntry.arguments?.getString("postId") ?: ""
+                ArticleRoute(postId = postId, onBack = { innerNavController.popBackStack() })
             }
+
         }
     }
 }

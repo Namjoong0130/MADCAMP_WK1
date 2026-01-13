@@ -1,6 +1,5 @@
 package com.example.madcamp_1.ui.screen.write
 
-import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -8,6 +7,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -34,7 +35,6 @@ import coil.compose.AsyncImage
 import com.example.madcamp_1.data.utils.AuthManager
 import com.example.madcamp_1.ui.theme.UnivsFontFamily
 
-// [1] 태그 디자인 데이터 모델
 data class WriteTagConfig(
     val name: String,
     val icon: ImageVector,
@@ -46,7 +46,7 @@ data class WriteTagConfig(
 fun WriteScreen(
     viewModel: WriteViewModel,
     onBack: () -> Unit,
-    onComplete: (String?, String, String, String, Boolean) -> Unit
+    onComplete: (String?, String, String, String, Boolean) -> Unit // (기존 호환용)
 ) {
     val context = LocalContext.current
     val schoolId = AuthManager.getSchoolId()
@@ -60,8 +60,10 @@ fun WriteScreen(
         WriteTagConfig("Q&A", Icons.Outlined.HelpOutline, Color(0xFF4CAF50))
     )
 
-    val galleryLauncher = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) {
-        viewModel.onImageSelected(it)
+    val galleryLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.PickMultipleVisualMedia(maxItems = 5)
+    ) { uris ->
+        viewModel.onImagesSelected(uris)
     }
 
     Scaffold(
@@ -72,7 +74,6 @@ fun WriteScreen(
                     IconButton(onClick = onBack) { Icon(Icons.Default.Close, contentDescription = null) }
                 },
                 actions = {
-                    // 익명 스위치 (상단 유지)
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.padding(end = 8.dp)
@@ -109,9 +110,11 @@ fun WriteScreen(
                 .padding(innerPadding)
                 .padding(horizontal = 20.dp)
         ) {
-            // [태그 바]
+            // 태그
             Row(
-                modifier = Modifier.padding(vertical = 12.dp).fillMaxWidth(),
+                modifier = Modifier
+                    .padding(vertical = 12.dp)
+                    .fillMaxWidth(),
                 horizontalArrangement = Arrangement.Start
             ) {
                 tagConfigs.forEach { config ->
@@ -125,15 +128,25 @@ fun WriteScreen(
                         onClick = { viewModel.onTagSelect(config.name) },
                         label = {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(imageVector = config.icon, contentDescription = null, modifier = Modifier.size(15.dp), tint = contentColor)
+                                Icon(
+                                    imageVector = config.icon,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(15.dp),
+                                    tint = contentColor
+                                )
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text(text = config.name, fontFamily = UnivsFontFamily, fontSize = 13.sp, fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Bold, color = contentColor)
+                                Text(
+                                    text = config.name,
+                                    fontFamily = UnivsFontFamily,
+                                    fontSize = 13.sp,
+                                    fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Bold,
+                                    color = contentColor
+                                )
                             }
                         },
                         shape = RoundedCornerShape(13.dp),
                         colors = FilterChipDefaults.filterChipColors(
                             containerColor = containerColor,
-                            labelColor = contentColor,
                             selectedContainerColor = config.color,
                             selectedLabelColor = Color.White
                         ),
@@ -144,33 +157,55 @@ fun WriteScreen(
                             selectedBorderColor = Color.Transparent,
                             borderWidth = 1.dp
                         ),
-                        modifier = Modifier.padding(end = 8.dp).wrapContentWidth()
+                        modifier = Modifier.padding(end = 8.dp)
                     )
                 }
             }
 
-            // [제목 입력]
+            // 제목
             TextField(
                 value = viewModel.title,
                 onValueChange = viewModel::onTitleChange,
                 placeholder = { Text("제목을 입력하세요", color = Color.LightGray, fontFamily = UnivsFontFamily) },
                 modifier = Modifier.fillMaxWidth(),
-                textStyle = LocalTextStyle.current.copy(fontSize = 20.sp, fontWeight = FontWeight.Bold, fontFamily = UnivsFontFamily),
-                colors = TextFieldDefaults.colors(focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent, focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent),
+                textStyle = LocalTextStyle.current.copy(
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = UnivsFontFamily
+                ),
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent,
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent
+                ),
                 singleLine = true
             )
 
-            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), thickness = 1.dp, color = Color(0xFFF0F0F0))
+            HorizontalDivider(
+                modifier = Modifier.padding(vertical = 4.dp),
+                thickness = 1.dp,
+                color = Color(0xFFF0F0F0)
+            )
 
-            // [본문 입력]
+            // 본문
             Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
                 TextField(
                     value = viewModel.content,
                     onValueChange = viewModel::onContentChange,
                     placeholder = { Text("내용을 입력하세요. (최대 180자)", color = Color.LightGray, fontFamily = UnivsFontFamily) },
                     modifier = Modifier.fillMaxSize(),
-                    textStyle = LocalTextStyle.current.copy(fontSize = 16.sp, fontFamily = UnivsFontFamily, lineHeight = 24.sp),
-                    colors = TextFieldDefaults.colors(focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent, focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent)
+                    textStyle = LocalTextStyle.current.copy(
+                        fontSize = 16.sp,
+                        fontFamily = UnivsFontFamily,
+                        lineHeight = 24.sp
+                    ),
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent,
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent
+                    )
                 )
                 Text(
                     text = "${viewModel.content.length} / 180",
@@ -184,29 +219,70 @@ fun WriteScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // ✅ [수정됨] 하단 레이아웃: 이미지 섹션 -> 게시 버튼 순서로 수직 배치
-
-            // 1. 이미지 업로드 섹션 (가로 꽉 채움)
+            // 이미지 첨부
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(Color(0xFFF8F9FA), RoundedCornerShape(16.dp))
                     .padding(16.dp)
             ) {
-                Text("이미지 첨부", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.Gray, fontFamily = UnivsFontFamily)
+                Text(
+                    "이미지 첨부",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Gray,
+                    fontFamily = UnivsFontFamily
+                )
                 Spacer(modifier = Modifier.height(12.dp))
+
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     IconButton(
-                        onClick = { galleryLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
-                        modifier = Modifier.size(60.dp).background(Color.White, RoundedCornerShape(12.dp)).border(1.dp, Color(0xFFE0E0E0), RoundedCornerShape(12.dp))
-                    ) { Icon(Icons.Default.CameraAlt, contentDescription = null, tint = brandColor) }
+                        onClick = {
+                            galleryLauncher.launch(
+                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                            )
+                        },
+                        modifier = Modifier
+                            .size(60.dp)
+                            .background(Color.White, RoundedCornerShape(12.dp))
+                            .border(1.dp, Color(0xFFE0E0E0), RoundedCornerShape(12.dp))
+                    ) {
+                        Icon(Icons.Default.CameraAlt, contentDescription = null, tint = brandColor)
+                    }
 
-                    if (viewModel.selectedImageUri != null) {
+                    if (viewModel.selectedImageUris.isNotEmpty()) {
                         Spacer(modifier = Modifier.width(12.dp))
-                        Box {
-                            AsyncImage(model = viewModel.selectedImageUri, contentDescription = null, modifier = Modifier.size(60.dp).clip(RoundedCornerShape(12.dp)).border(1.dp, Color(0xFFE0E0E0), RoundedCornerShape(12.dp)), contentScale = ContentScale.Crop)
-                            Surface(modifier = Modifier.size(18.dp).align(Alignment.TopEnd).offset(x = 6.dp, y = (-6).dp).clickable { viewModel.onImageSelected(null) }, color = Color.Gray, shape = CircleShape) {
-                                Icon(Icons.Default.Close, contentDescription = null, tint = Color.White, modifier = Modifier.padding(2.dp))
+
+                        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            itemsIndexed(viewModel.selectedImageUris) { idx, uri ->
+                                Box {
+                                    AsyncImage(
+                                        model = uri,
+                                        contentDescription = null,
+                                        modifier = Modifier
+                                            .size(55.dp)
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .border(1.dp, Color(0xFFE0E0E0), RoundedCornerShape(12.dp)),
+                                        contentScale = ContentScale.Crop
+                                    )
+
+                                    Surface(
+                                        modifier = Modifier
+                                            .size(18.dp)
+                                            .align(Alignment.TopEnd)
+                                            .offset(x = 6.dp, y = (-6).dp)
+                                            .clickable { viewModel.removeImageAt(idx) },
+                                        color = Color.Gray,
+                                        shape = CircleShape
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Close,
+                                            contentDescription = null,
+                                            tint = Color.White,
+                                            modifier = Modifier.padding(2.dp)
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
@@ -215,26 +291,39 @@ fun WriteScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // ✅ [수정됨] 게시 버튼 (가로 꽉 채움, 동그랗게)
+            // 게시 버튼
             Button(
                 onClick = {
-                    val base64 = viewModel.getBase64Image(context)
-                    onComplete(base64, viewModel.title, viewModel.content, viewModel.selectedTag, viewModel.isAnonymous)
+                    // ✅ 이제는 ViewModel이 업로드를 전담
+                    viewModel.uploadPostToServer(context) {
+                        // 기존 호환 콜백(화면 이동 등)만 유지
+                        onBack()
+                    }
                 },
                 modifier = Modifier
-                    .fillMaxWidth() // 가로로 꽉 채우기
+                    .fillMaxWidth()
                     .height(56.dp),
-                shape = RoundedCornerShape(20.dp), // 조금 더 동그랗게 깎음
-                enabled = viewModel.title.isNotBlank() && viewModel.content.isNotBlank(),
+                shape = RoundedCornerShape(20.dp),
+                enabled = viewModel.title.isNotBlank() && viewModel.content.isNotBlank() && !viewModel.isUploading,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = brandColor,
                     disabledContainerColor = Color(0xFFF0F0F0)
                 )
             ) {
-                Text("게시", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, fontFamily = UnivsFontFamily, color = Color.White)
+                if (viewModel.isUploading) {
+                    CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White)
+                } else {
+                    Text(
+                        "게시",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        fontFamily = UnivsFontFamily,
+                        color = Color.White
+                    )
+                }
             }
 
-            Spacer(modifier = Modifier.height(16.dp)) // 하단 여백 추가
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }
