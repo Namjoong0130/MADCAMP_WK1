@@ -25,10 +25,15 @@ class DashboardViewModel : ViewModel() {
             (tag == "전체" || it.category == tag) &&
                     (it.title.contains(query, ignoreCase = true) || it.content.contains(query, ignoreCase = true))
         }
+            .sortedByDescending { it.timestamp }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     // 초기화 시 호출
     init { fetchPosts() }
+
+    fun refreshPosts() {
+        fetchPosts()
+    }
 
     fun fetchPosts() {
         viewModelScope.launch {

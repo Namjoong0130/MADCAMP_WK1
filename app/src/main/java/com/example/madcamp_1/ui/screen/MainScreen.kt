@@ -29,6 +29,7 @@ import com.example.madcamp_1.ui.screen.infoselect.SelectRoute
 import com.example.madcamp_1.ui.screen.write.WriteRoute
 import com.example.madcamp_1.ui.screen.article.ArticleRoute
 import com.example.madcamp_1.ui.theme.UnivsFontFamily
+import com.example.madcamp_1.ui.screen.dashboard.DashboardScreen
 
 @Composable
 fun MainScreen() {
@@ -114,6 +115,25 @@ fun MainScreen() {
             modifier = Modifier.padding(innerPadding)){
             composable("schedule") { ScheduleRoute() }
             composable("dashboard") {
+                val searchText by dashboardViewModel.searchText.collectAsState()
+                val selectedTag by dashboardViewModel.selectedTag.collectAsState()
+                val posts by dashboardViewModel.filteredPosts.collectAsState()
+                val isLoading by dashboardViewModel.isLoading.collectAsState()
+
+                DashboardScreen(
+                    searchText = searchText,
+                    selectedTag = selectedTag,
+                    posts = posts,
+                    isLoading = isLoading,
+                    onSearchChange = { dashboardViewModel.onSearchTextChange(it) },
+                    onTagSelect = { dashboardViewModel.onTagSelected(it) },
+                    onNavigateToWrite = { innerNavController.navigate("write") },
+                    onPostClick = { postId: Int -> // 타입을 명시하여 에러 해결
+                        innerNavController.navigate("article/$postId")
+                    },
+                    onRefresh = { dashboardViewModel.refreshPosts() } // [연결]
+                )
+
                 DashboardRoute(
                     viewModel = dashboardViewModel,
                     onNavigateToWrite = { innerNavController.navigate("write") },
