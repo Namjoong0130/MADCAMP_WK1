@@ -8,8 +8,8 @@ object AuthManager {
     // 닉네임 5글자 제한 및 ... 처리 로직
     fun getFormattedNickname(): String {
         val nickname = currentUser?.nickname ?: "사용자"
-        return if (nickname.length > 5) {
-            nickname.take(5) + "..."
+        return if (nickname.length > 7) {
+            nickname.take(7) + "..."
         } else {
             nickname
         }
