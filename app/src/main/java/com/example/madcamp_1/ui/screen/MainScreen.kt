@@ -1,10 +1,12 @@
 package com.example.madcamp_1.ui.screen
 
-import androidx.compose.foundation.background
+import android.net.Uri
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.List
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -15,45 +17,45 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavDestination.Companion.hierarchy
-import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
 import androidx.navigation.compose.*
 import androidx.navigation.navArgument
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.rememberNavController
+import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.compose.currentBackStackEntryAsState
 import com.example.madcamp_1.data.utils.AuthManager
+import com.example.madcamp_1.ui.screen.article.ArticleRoute
 import com.example.madcamp_1.ui.screen.dashboard.DashboardRoute
 import com.example.madcamp_1.ui.screen.dashboard.DashboardViewModel
 import com.example.madcamp_1.ui.screen.info.InfoRoute
-import com.example.madcamp_1.ui.screen.schedule.ScheduleRoute
 import com.example.madcamp_1.ui.screen.infoselect.SelectRoute
+import com.example.madcamp_1.ui.screen.schedule.ScheduleRoute
 import com.example.madcamp_1.ui.screen.write.WriteRoute
-import com.example.madcamp_1.ui.screen.article.ArticleRoute
 import com.example.madcamp_1.ui.theme.UnivsFontFamily
-import com.example.madcamp_1.ui.screen.dashboard.DashboardScreen
 
 @Composable
 fun MainScreen() {
     val innerNavController = rememberNavController()
     val navBackStackEntry by innerNavController.currentBackStackEntryAsState()
-    val currentDestination = navBackStackEntry?.destination
-    val currentRoute = currentDestination?.route
+    val currentRoute = navBackStackEntry?.destination?.route
 
     val schoolId = AuthManager.getSchoolId()
     val isPostech = schoolId.contains("postech", ignoreCase = true)
 
     val brandColor = if (isPostech) Color(0xFFE0224E) else Color(0xFF005EB8)
     val brandPastel = if (isPostech) Color(0xFFFFEBEE) else Color(0xFFE3F2FD)
-
-    // 시인성을 위해 선택되지 않은 상태의 색상을 훨씬 진한 회색으로 설정
     val unselectedColor = Color(0xFF424242)
 
+    // 탭/글쓰기/상세에서 같은 VM을 공유하기 위해 MainScreen에서 1회 생성
     val dashboardViewModel: DashboardViewModel = viewModel()
-    val showBottomBar = currentRoute != "write" && currentRoute?.startsWith("article") == false
+
+    // write, article에서는 bottomBar 숨김
+    val showBottomBar = currentRoute != "write" && (currentRoute?.startsWith("article") != true)
 
     Scaffold(
         bottomBar = {
             if (showBottomBar) {
-                // NavigationBar 자체의 패딩을 제거하여 내부 아이템이 잘리지 않게 함
                 NavigationBar(
                     containerColor = Color.White,
                     tonalElevation = 0.dp,
@@ -70,7 +72,7 @@ fun MainScreen() {
                         val isSelected = if (route == "select") {
                             currentRoute == "select" || currentRoute?.startsWith("info") == true
                         } else {
-                            currentDestination?.hierarchy?.any { it.route == route } == true
+                            currentRoute == route
                         }
 
                         NavigationBarItem(
@@ -84,18 +86,16 @@ fun MainScreen() {
                                         modifier = Modifier.size(24.dp),
                                         tint = if (isSelected) brandColor else unselectedColor
                                     )
-                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Spacer(Modifier.height(4.dp))
                                     Text(
                                         text = label,
                                         fontFamily = UnivsFontFamily,
                                         fontSize = 11.sp,
-                                        fontWeight = if (isSelected) FontWeight.Black else FontWeight.Bold,
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                                         color = if (isSelected) brandColor else unselectedColor
                                     )
                                 }
                             },
-                            // label 파라미터를 비우고 icon 파라미터 안에 Column으로 합쳐서
-                            // 기본 NavigationBarItem의 높이 계산 오류(잘림 현상)를 방지합니다.
                             label = null,
                             colors = NavigationBarItemDefaults.colors(
                                 indicatorColor = brandPastel
@@ -112,35 +112,23 @@ fun MainScreen() {
         NavHost(
             navController = innerNavController,
             startDestination = "schedule",
-            modifier = Modifier.padding(innerPadding)){
+            modifier = Modifier.padding(innerPadding)
+        ) {
             composable("schedule") { ScheduleRoute() }
+
             composable("dashboard") {
-                val searchText by dashboardViewModel.searchText.collectAsState()
-                val selectedTag by dashboardViewModel.selectedTag.collectAsState()
-                val posts by dashboardViewModel.filteredPosts.collectAsState()
-                val isLoading by dashboardViewModel.isLoading.collectAsState()
-
-                DashboardScreen(
-                    searchText = searchText,
-                    selectedTag = selectedTag,
-                    posts = posts,
-                    isLoading = isLoading,
-                    onSearchChange = { dashboardViewModel.onSearchTextChange(it) },
-                    onTagSelect = { dashboardViewModel.onTagSelected(it) },
-                    onNavigateToWrite = { innerNavController.navigate("write") },
-                    onPostClick = { postId: Int -> // 타입을 명시하여 에러 해결
-                        innerNavController.navigate("article/$postId")
-                    },
-                    onRefresh = { dashboardViewModel.refreshPosts() } // [연결]
-                )
-
                 DashboardRoute(
-                    viewModel = dashboardViewModel,
                     onNavigateToWrite = { innerNavController.navigate("write") },
-                    onNavigateToArticle = { postId -> innerNavController.navigate("article/$postId") }
+                    onNavigateToArticle = { postId ->
+                        val encoded = Uri.encode(postId)
+                        innerNavController.navigate("article/$encoded")
+                    },
+                    dashboardViewModel = dashboardViewModel
                 )
             }
+
             composable("select") { SelectRoute(navController = innerNavController) }
+
             composable(
                 route = "info/{category}",
                 arguments = listOf(navArgument("category") { type = NavType.StringType })
@@ -148,24 +136,29 @@ fun MainScreen() {
                 val category = backStackEntry.arguments?.getString("category") ?: ""
                 InfoRoute(category = category, navController = innerNavController)
             }
+
             composable("write") {
                 WriteRoute(
-                    dashboardViewModel = dashboardViewModel,
-                    onBack = { innerNavController.popBackStack() }
+                    onBack = { innerNavController.popBackStack() },
+                    dashboardViewModel = dashboardViewModel
                 )
             }
+
             composable(
                 route = "article/{postId}",
-                arguments = listOf(navArgument("postId") { type = NavType.IntType })
+                arguments = listOf(navArgument("postId") { type = NavType.StringType })
             ) { backStackEntry ->
-                val postId = backStackEntry.arguments?.getInt("postId") ?: 0
-                ArticleRoute(postId = postId, onBack = { innerNavController.popBackStack() })
+                val postId = backStackEntry.arguments?.getString("postId").orEmpty()
+                ArticleRoute(
+                    postId = postId,
+                    onBack = { innerNavController.popBackStack() }
+                )
             }
         }
     }
 }
 
-private fun navigateToTab(navController: androidx.navigation.NavHostController, route: String) {
+private fun navigateToTab(navController: NavHostController, route: String) {
     navController.navigate(route) {
         popUpTo(navController.graph.findStartDestination().id) { saveState = true }
         launchSingleTop = true

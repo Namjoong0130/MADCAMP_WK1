@@ -1,21 +1,19 @@
 package com.example.madcamp_1.ui.navigation
 
-import android.net.Uri
 import androidx.compose.runtime.Composable
-import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navArgument
-import com.example.madcamp_1.ui.screen.article.ArticleRoute
-import com.example.madcamp_1.ui.screen.dashboard.DashboardRoute
-import com.example.madcamp_1.ui.screen.write.WriteRoute
+import com.example.madcamp_1.ui.screen.MainScreen
+import com.example.madcamp_1.ui.screen.initial.InitRoute
+import com.example.madcamp_1.ui.screen.login.LoginRoute
+import com.example.madcamp_1.ui.screen.register.RegisterRoute
 
 object Routes {
-    const val DASHBOARD = "dashboard"
-    const val WRITE = "write"
-    const val ARTICLE = "article"
-    const val ARTICLE_WITH_ID = "article/{postId}"
+    const val INIT = "init"
+    const val LOGIN = "login"
+    const val REGISTER = "register"
+    const val MAIN = "main"
 }
 
 @Composable
@@ -24,31 +22,39 @@ fun NavGraph() {
 
     NavHost(
         navController = navController,
-        startDestination = Routes.DASHBOARD
+        startDestination = Routes.INIT
     ) {
-        composable(Routes.DASHBOARD) {
-            DashboardRoute(
-                onNavigateToWrite = { navController.navigate(Routes.WRITE) },
-                onNavigateToArticle = { postId ->
-                    val encoded = Uri.encode(postId)
-                    navController.navigate("${Routes.ARTICLE}/$encoded")
+        composable(Routes.INIT) {
+            InitRoute(
+                onNavigateToLogin = {
+                    navController.navigate(Routes.LOGIN) {
+                        popUpTo(Routes.INIT) { inclusive = true }
+                        launchSingleTop = true
+                    }
                 }
             )
         }
 
-        composable(Routes.WRITE) {
-            WriteRoute(onBack = { navController.popBackStack() })
+        composable(Routes.LOGIN) {
+            LoginRoute(
+                onNavigateToRegister = { navController.navigate(Routes.REGISTER) },
+                onLoginSuccess = {
+                    navController.navigate(Routes.MAIN) {
+                        popUpTo(Routes.LOGIN) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                }
+            )
         }
 
-        composable(
-            route = Routes.ARTICLE_WITH_ID,
-            arguments = listOf(navArgument("postId") { type = NavType.StringType })
-        ) { backStackEntry ->
-            val postId = backStackEntry.arguments?.getString("postId").orEmpty()
-            ArticleRoute(
-                postId = postId,
-                onBack = { navController.popBackStack() }
+        composable(Routes.REGISTER) {
+            RegisterRoute(
+                onBackToLogin = { navController.popBackStack() }
             )
+        }
+
+        composable(Routes.MAIN) {
+            MainScreen()
         }
     }
 }
