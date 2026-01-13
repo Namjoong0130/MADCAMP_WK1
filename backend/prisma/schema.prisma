@@ -27,6 +27,8 @@ model User {
   refreshTokens   RefreshToken[]
   shareLinks      ShareLink[]
   school          School?        @relation(fields: [schoolId], references: [id])
+  cheerTaps        CheerTap[]     @relation("UserCheerTaps")
+
 
   @@index([schoolId], map: "User_schoolId_fkey")
 }
@@ -325,7 +327,7 @@ model CheerTap {
 
   match     CheerMatch @relation(fields: [matchId], references: [id])
   team      CheerTeam  @relation(fields: [teamId], references: [id])
-  user      User       @relation(fields: [userId], references: [id])
+  user      User       @relation("UserCheerTaps", fields: [userId], references: [id])
 
   // 한 유저는 한 매치에서 한 팀에 대해 1개의 row만 유지하고 count만 증가
   @@unique([matchId, teamId, userId])
