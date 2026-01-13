@@ -1,3 +1,4 @@
+// PostApiService.kt
 package com.example.madcamp_1.data.api
 
 import com.example.madcamp_1.data.model.*
@@ -11,25 +12,46 @@ interface PostApiService {
     @POST("auth/register")
     suspend fun register(@Body request: RegisterRequest): AuthResponse
 
-    // Media(Base64) 업로드
+    // Media
     @POST("media")
     suspend fun uploadMedia(@Body request: MediaCreateRequest): MediaResponse
 
-    // Posts - 생성
-    // ✅ 서버 응답 형식이 확정되지 않았다면 Any 유지(지금 코드 유지)
+    // Posts
     @POST("posts")
-    suspend fun createPost(@Body request: PostCreateRequest): Any
+    suspend fun createPost(@Body request: PostCreateRequest): PostResponse
 
-    // Posts - 목록
     @GET("posts")
     suspend fun getPosts(
         @Query("tag") tag: String? = null,
-        @Query("limit") limit: Int = 20
+        @Query("limit") limit: Int = 20,
+        @Query("cursor") cursor: String? = null
     ): PostListResponse
 
-    // ✅ Posts - 상세 (이번에 추가)
     @GET("posts/{id}")
-    suspend fun getPostDetail(
-        @Path("id") id: String
-    ): PostResponse
+    suspend fun getPostDetail(@Path("id") id: String): PostResponse
+
+    // Like
+    @POST("posts/{id}/like")
+    suspend fun toggleLike(@Path("id") id: String): LikeToggleResponse
+
+    // Comments
+    @GET("posts/{id}/comments")
+    suspend fun getComments(
+        @Path("id") id: String,
+        @Query("limit") limit: Int = 50,
+        @Query("cursor") cursor: String? = null
+    ): CommentsListResponse
+
+    @POST("posts/{id}/comments")
+    suspend fun createComment(
+        @Path("id") id: String,
+        @Body body: CommentCreateRequest
+    ): CommentDto
+
+    // (응원전 API가 필요하면 유지)
+    @GET("cheer-matches/active")
+    suspend fun getActiveMatch(): CheerMatchResponse
+
+    @POST("cheer-taps")
+    suspend fun postCheerTaps(@Body request: CheerTapRequest): Any
 }

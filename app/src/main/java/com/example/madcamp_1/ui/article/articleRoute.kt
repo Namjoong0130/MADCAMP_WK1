@@ -10,10 +10,20 @@ fun ArticleRoute(
     viewModel: ArticleViewModel = viewModel()
 ) {
     val post by viewModel.post.collectAsState()
+    val comments by viewModel.comments.collectAsState()
+    val commentText by viewModel.commentText.collectAsState()
 
     LaunchedEffect(postId) {
-        viewModel.fetchPostById(postId)
+        viewModel.fetch(postId)
     }
 
-    ArticleScreen(post = post, onBack = onBack)
+    ArticleScreen(
+        post = post,
+        comments = comments,
+        commentText = commentText,
+        onCommentTextChange = viewModel::onCommentTextChange,
+        onToggleLike = viewModel::toggleLike,
+        onSendComment = viewModel::sendComment,
+        onBack = onBack
+    )
 }

@@ -10,10 +10,11 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 class DashboardViewModel : ViewModel() {
+
     private val _searchText = MutableStateFlow("")
     val searchText = _searchText.asStateFlow()
 
-    private val _selectedTag = MutableStateFlow("")
+    private val _selectedTag = MutableStateFlow("") // ""이면 전체
     val selectedTag = _selectedTag.asStateFlow()
 
     private val _posts = MutableStateFlow<List<Post>>(emptyList())
@@ -32,27 +33,39 @@ class DashboardViewModel : ViewModel() {
             .sortedByDescending { it.timestamp }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    fun refreshPosts() { fetchPosts() }
+    fun refreshPosts() = fetchPosts()
 
     fun fetchPosts() {
         viewModelScope.launch {
             _isLoading.value = true
             try {
+                Log.d("DashboardDebug", "서버에서 게시글 목록을 가져오는 중...")
                 val response = RetrofitClient.apiService.getPosts()
+
                 _posts.value = response.items.map { item ->
+                    val medias = item.medias.orEmpty().map { m ->
+                        Media(id = m.id, url = m.url)
+                    }
+
                     Post(
                         id = item.id,
                         title = item.title,
                         content = item.content,
                         category = item.tags?.firstOrNull()?.tag?.name ?: "소통",
                         timestamp = parseIsoDateToMillis(item.createdAt),
-                        author = item.author.nickname, // 서버가 준 이름 그대로 노출
-                        imageUri = item.medias?.firstOrNull()?.url,
-                        likes = item.likeCount
+                        author = item.author?.nickname ?: "익명",
+                        authorSchoolId = item.author?.schoolId,      // ✅ 추가
+                        imageUri = medias.firstOrNull()?.url,
+                        likes = item.likeCount,
+                        likedByMe = item.likedByMe ?: false,         // ✅ 서버가 주면 사용
+                        commentCount = item.commentCount ?: 0,        // ✅ 서버가 주면 사용
+                        medias = medias
                     )
                 }
+
             } catch (e: Exception) {
-                Log.e("DashboardDebug", "데이터 로드 실패: ${e.message}")
+                Log.e("DashboardDebug", "게시글 로드 실패: ${e.message}")
+                e.printStackTrace()
             } finally {
                 _isLoading.value = false
             }
@@ -60,16 +73,30 @@ class DashboardViewModel : ViewModel() {
     }
 
     private fun parseIsoDateToMillis(isoString: String): Long {
-        val patterns = listOf("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", "yyyy-MM-dd'T'HH:mm:ss'Z'")
+        // 폴백 포함 버전(기존 로직 유지)
+        val patterns = listOf(
+            "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
+            "yyyy-MM-dd'T'HH:mm:ss'Z'",
+            "yyyy-MM-dd'T'HH:mm:ss"
+        )
+
         for (pattern in patterns) {
             try {
-                val format = SimpleDateFormat(pattern, Locale.US).apply { timeZone = TimeZone.getTimeZone("UTC") }
-                return format.parse(isoString)?.time ?: System.currentTimeMillis()
-            } catch (e: Exception) { continue }
+                val format = SimpleDateFormat(pattern, Locale.US).apply {
+                    timeZone = TimeZone.getTimeZone("UTC")
+                }
+                val date = format.parse(isoString)
+                if (date != null) return date.time
+            } catch (_: Exception) { }
         }
         return System.currentTimeMillis()
     }
 
-    fun onSearchTextChange(text: String) { _searchText.value = text }
-    fun onTagSelected(tag: String) { _selectedTag.value = tag }
+    fun onSearchTextChange(text: String) {
+        _searchText.value = text
+    }
+
+    fun onTagSelected(tag: String) {
+        _selectedTag.value = tag
+    }
 }

@@ -17,8 +17,8 @@ import java.io.ByteArrayOutputStream
 class WriteViewModel : ViewModel() {
     var title by mutableStateOf("")
     var content by mutableStateOf("")
-    var selectedTag by mutableStateOf("공지") // 초기값 설정
-    var selectedImageUri by mutableStateOf<Uri?>(null)
+    var selectedTag by mutableStateOf("공지")
+    var selectedImageUris by mutableStateOf<List<Uri>>(emptyList())
     var isAnonymous by mutableStateOf(true)
     var isUploading by mutableStateOf(false)
 
@@ -26,38 +26,55 @@ class WriteViewModel : ViewModel() {
     fun onContentChange(newText: String) {
         if (newText.length <= 180) content = newText
     }
+
     fun onTagSelect(tag: String) { selectedTag = tag }
-    fun onImageSelected(uri: Uri?) { selectedImageUri = uri }
+
+    fun onImagesSelected(uris: List<Uri>) {
+        selectedImageUris = uris
+    }
+
+    fun removeImageAt(index: Int) {
+        selectedImageUris = selectedImageUris.toMutableList().also { list ->
+            if (index in list.indices) list.removeAt(index)
+        }
+    }
+
     fun toggleAnonymous(value: Boolean) { isAnonymous = value }
 
     fun clearFields() {
-        title = ""; content = ""; selectedTag = "공지"; selectedImageUri = null; isAnonymous = true
+        title = ""
+        content = ""
+        selectedTag = "공지"
+        selectedImageUris = emptyList()
+        isAnonymous = true
     }
 
     fun uploadPostToServer(context: Context, onSuccess: () -> Unit) {
         viewModelScope.launch {
             isUploading = true
             try {
-                val base64Image = getBase64Image(context)
                 val mediaIds = mutableListOf<String>()
 
-                if (base64Image != null) {
-                    val mediaResponse = RetrofitClient.apiService.uploadMedia(
-                        MediaCreateRequest(url = base64Image)
+                // ✅ 여러 이미지 업로드 → mediaIds 확보
+                for (uri in selectedImageUris) {
+                    val base64 = toBase64Jpeg(context, uri) ?: continue
+                    val mediaRes = RetrofitClient.apiService.uploadMedia(
+                        MediaCreateRequest(url = base64)
                     )
-                    mediaIds.add(mediaResponse.id)
+                    mediaIds.add(mediaRes.id)
                 }
 
-                // ✅ nickname 필드 전송 중단 (서버 에러 원인)
+                // ✅ 게시글 생성
                 RetrofitClient.apiService.createPost(
                     PostCreateRequest(
                         title = title,
                         content = content,
-                        visibility = "PUBLIC", // 서버가 허용하는 "PUBLIC" 고정
-                        tagIds = listOf(selectedTag), // 서버가 "공지" 등 이름을 ID로 쓴다고 가정
+                        visibility = "PUBLIC",
+                        tagIds = listOf(selectedTag),
                         mediaIds = mediaIds
                     )
                 )
+
                 clearFields()
                 onSuccess()
             } catch (e: Exception) {
@@ -68,15 +85,16 @@ class WriteViewModel : ViewModel() {
         }
     }
 
-    fun getBase64Image(context: Context): String? {
-        val uri = selectedImageUri ?: return null
+    private fun toBase64Jpeg(context: Context, uri: Uri): String? {
         return try {
-            val inputStream = context.contentResolver.openInputStream(uri)
-            val bitmap = BitmapFactory.decodeStream(inputStream)
-            val outputStream = ByteArrayOutputStream()
-            bitmap.compress(Bitmap.CompressFormat.JPEG, 70, outputStream)
-            val byteArray = outputStream.toByteArray()
-            "data:image/jpeg;base64," + Base64.encodeToString(byteArray, Base64.NO_WRAP)
+            context.contentResolver.openInputStream(uri).use { input ->
+                if (input == null) return null
+                val bitmap = BitmapFactory.decodeStream(input) ?: return null
+                val outputStream = ByteArrayOutputStream()
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 70, outputStream)
+                val byteArray = outputStream.toByteArray()
+                "data:image/jpeg;base64," + Base64.encodeToString(byteArray, Base64.NO_WRAP)
+            }
         } catch (e: Exception) {
             e.printStackTrace()
             null

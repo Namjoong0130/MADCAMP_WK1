@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Fence // ✅ '칼'과 '결투'를 상징하는 펜싱 아이콘
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material3.*
@@ -32,8 +33,8 @@ import com.example.madcamp_1.ui.screen.info.InfoRoute
 import com.example.madcamp_1.ui.screen.infoselect.SelectRoute
 import com.example.madcamp_1.ui.screen.schedule.ScheduleRoute
 import com.example.madcamp_1.ui.screen.write.WriteRoute
+import com.example.madcamp_1.ui.screen.battle.BattleRoute
 import com.example.madcamp_1.ui.theme.UnivsFontFamily
-import com.example.madcamp_1.ui.screen.dashboard.DashboardScreen
 
 @Composable
 fun MainScreen() {
@@ -48,7 +49,6 @@ fun MainScreen() {
     val brandColor = if (isPostech) Color(0xFFE0224E) else Color(0xFF005EB8)
     val brandPastel = if (isPostech) Color(0xFFFFEBEE) else Color(0xFFE3F2FD)
 
-    // 시인성을 위해 선택되지 않은 상태의 색상을 훨씬 진한 회색으로 설정
     val unselectedColor = Color(0xFF424242)
 
     val dashboardViewModel: DashboardViewModel = viewModel()
@@ -57,7 +57,6 @@ fun MainScreen() {
     Scaffold(
         bottomBar = {
             if (showBottomBar) {
-                // NavigationBar 자체의 패딩을 제거하여 내부 아이템이 잘리지 않게 함
                 NavigationBar(
                     containerColor = Color.White,
                     tonalElevation = 0.dp,
@@ -67,7 +66,8 @@ fun MainScreen() {
                     val navItems = listOf(
                         Triple("schedule", "스케줄", Icons.Default.DateRange),
                         Triple("dashboard", "게시판", Icons.Default.List),
-                        Triple("select", "경기정보", Icons.Default.Info)
+                        Triple("select", "경기정보", Icons.Default.Info),
+                        Triple("battle", "배틀", Icons.Default.Fence) // ✅ 칼 느낌의 아이콘으로 변경
                     )
 
                     navItems.forEach { (route, label, icon) ->
@@ -98,8 +98,6 @@ fun MainScreen() {
                                     )
                                 }
                             },
-                            // label 파라미터를 비우고 icon 파라미터 안에 Column으로 합쳐서
-                            // 기본 NavigationBarItem의 높이 계산 오류(잘림 현상)를 방지합니다.
                             label = null,
                             colors = NavigationBarItemDefaults.colors(
                                 indicatorColor = brandPastel
@@ -120,7 +118,6 @@ fun MainScreen() {
             composable("schedule") {
                 ScheduleRoute(
                     onNavigateToInfo = { category ->
-                        // "축구", "해킹" 등의 문자열을 가지고 이동합니다.
                         innerNavController.navigate("info/$category")
                     }
                 )
@@ -136,6 +133,12 @@ fun MainScreen() {
                 )
             }
             composable("select") { SelectRoute(navController = innerNavController) }
+
+            // ✅ 배틀 탭 화면 연결
+            composable("battle") {
+                BattleRoute()
+            }
+
             composable(
                 route = "info/{category}",
                 arguments = listOf(navArgument("category") { type = NavType.StringType })
@@ -153,12 +156,10 @@ fun MainScreen() {
                 route = "article/{postId}",
                 arguments = listOf(navArgument("postId") { type = NavType.StringType })
             ) { backStackEntry ->
-                val postId = backStackEntry.arguments?.getString("postId").orEmpty()
-                ArticleRoute(
-                    postId = postId,
-                    onBack = { innerNavController.popBackStack() }
-                )
+                val postId = backStackEntry.arguments?.getString("postId") ?: ""
+                ArticleRoute(postId = postId, onBack = { innerNavController.popBackStack() })
             }
+
         }
     }
 }

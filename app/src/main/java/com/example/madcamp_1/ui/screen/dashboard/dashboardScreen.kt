@@ -1,29 +1,33 @@
+// app/src/main/java/com/example/madcamp_1/ui/screen/dashboard/dashboardScreen.kt
 package com.example.madcamp_1.ui.screen.dashboard
 
-import android.graphics.BitmapFactory
-import android.util.Base64
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.*
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.outlined.Campaign
+import androidx.compose.material.icons.outlined.ChatBubbleOutline
+import androidx.compose.material.icons.outlined.HelpOutline
+import androidx.compose.material.icons.outlined.Lightbulb
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember // ✅ 필수 임포트
-import androidx.compose.ui.*
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ImageBitmap // ✅ 필수 임포트
-import androidx.compose.ui.graphics.asImageBitmap // ✅ 필수 임포트
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -32,8 +36,9 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.madcamp_1.data.utils.AuthManager
 import com.example.madcamp_1.ui.theme.UnivsFontFamily
+import com.example.madcamp_1.ui.util.UiMappings
+import com.example.madcamp_1.ui.util.dataUrlToImageBitmapOrNull
 
-// [1] 태그 디자인 데이터 모델
 data class TagUIConfig(
     val name: String,
     val icon: ImageVector,
@@ -53,15 +58,14 @@ fun DashboardScreen(
     onPostClick: (String) -> Unit,
     onRefresh: () -> Unit
 ) {
-    val schoolId = AuthManager.getSchoolId()
-    val isPostech = schoolId.contains("postech", ignoreCase = true)
-    val brandColor = if (isPostech) Color(0xFFE0224E) else Color(0xFF005EB8)
+    val mySchoolId = AuthManager.getSchoolId()
+    val myBrandColor = UiMappings.schoolColor(mySchoolId)
 
     val tagConfigs = listOf(
-        TagUIConfig("공지", Icons.Outlined.Campaign, Color(0xFF9C27B0)),
-        TagUIConfig("소통", Icons.Outlined.ChatBubbleOutline, Color(0xFF03A9F4)),
-        TagUIConfig("꿀팁", Icons.Outlined.Lightbulb, Color(0xFFFFB300)),
-        TagUIConfig("Q&A", Icons.Outlined.HelpOutline, Color(0xFF4CAF50))
+        TagUIConfig("공지", Icons.Outlined.Campaign, UiMappings.tagColor("공지")),
+        TagUIConfig("소통", Icons.Outlined.ChatBubbleOutline, UiMappings.tagColor("소통")),
+        TagUIConfig("꿀팁", Icons.Outlined.Lightbulb, UiMappings.tagColor("꿀팁")),
+        TagUIConfig("Q&A", Icons.Outlined.HelpOutline, UiMappings.tagColor("Q&A"))
     )
 
     val state = rememberPullToRefreshState()
@@ -70,7 +74,7 @@ fun DashboardScreen(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = onNavigateToWrite,
-                containerColor = brandColor,
+                containerColor = myBrandColor,
                 contentColor = Color.White,
                 shape = CircleShape
             ) { Icon(Icons.Default.Edit, contentDescription = null) }
@@ -90,7 +94,7 @@ fun DashboardScreen(
                     isRefreshing = isLoading,
                     modifier = Modifier.align(Alignment.TopCenter),
                     containerColor = Color.White,
-                    color = brandColor
+                    color = myBrandColor
                 )
             }
         ) {
@@ -112,13 +116,14 @@ fun DashboardScreen(
                         unfocusedContainerColor = Color.White,
                         focusedContainerColor = Color.White,
                         unfocusedBorderColor = Color.Transparent,
-                        focusedBorderColor = brandColor
+                        focusedBorderColor = myBrandColor,
+                        cursorColor = myBrandColor
                     )
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // --- 쫀쫀한 디자인의 태그 바 ---
+                // 태그 바
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -172,7 +177,7 @@ fun DashboardScreen(
 
                 if (isLoading && posts.isEmpty()) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(color = brandColor)
+                        CircularProgressIndicator(color = myBrandColor)
                     }
                 } else {
                     LazyColumn(
@@ -183,7 +188,7 @@ fun DashboardScreen(
                         items(posts) { post ->
                             PostItem(
                                 post = post,
-                                brandColor = brandColor,
+                                mySchoolId = mySchoolId,
                                 onClick = { onPostClick(post.id) }
                             )
                         }
@@ -195,7 +200,16 @@ fun DashboardScreen(
 }
 
 @Composable
-fun PostItem(post: Post, brandColor: Color, onClick: () -> Unit) {
+private fun PostItem(
+    post: Post,
+    mySchoolId: String,
+    onClick: () -> Unit
+) {
+    val tagColor = UiMappings.tagColor(post.category)
+    val authorSchoolId = post.authorSchoolId
+    val authorSchoolColor = UiMappings.schoolColor(authorSchoolId)
+    val isSameSchool = !authorSchoolId.isNullOrBlank() && authorSchoolId.equals(mySchoolId, ignoreCase = true)
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -211,36 +225,122 @@ fun PostItem(post: Post, brandColor: Color, onClick: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
+
+                // ✅ 태그 칩(태그별 색 고정)
                 Surface(
-                    color = brandColor.copy(alpha = 0.1f),
-                    shape = RoundedCornerShape(8.dp)
+                    color = tagColor.copy(alpha = 0.10f),
+                    shape = RoundedCornerShape(10.dp)
                 ) {
                     Text(
                         text = post.category,
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 2.dp),
-                        color = brandColor,
-                        fontSize = 10.sp,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                        color = tagColor,
+                        fontSize = 11.sp,
                         fontFamily = UnivsFontFamily,
                         fontWeight = FontWeight.Bold
                     )
                 }
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(text = post.title, fontFamily = UnivsFontFamily, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, maxLines = 1)
-                Text(text = post.content, fontFamily = UnivsFontFamily, fontSize = 13.sp, color = Color.Gray, maxLines = 2, modifier = Modifier.padding(top = 4.dp))
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Text(
+                    text = post.title,
+                    fontFamily = UnivsFontFamily,
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 16.sp,
+                    maxLines = 1
+                )
+
+                Text(
+                    text = post.content,
+                    fontFamily = UnivsFontFamily,
+                    fontSize = 13.sp,
+                    color = Color.Gray,
+                    maxLines = 2,
+                    modifier = Modifier.padding(top = 6.dp)
+                )
+
                 Spacer(modifier = Modifier.height(12.dp))
+
+                // ✅ 하단 메타(시간 · 작성자 + 학교뱃지 · 좋아요/댓글)
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(text = "${formatPostTime(post.timestamp)} · ${post.author}", fontFamily = UnivsFontFamily, fontSize = 11.sp, color = Color(0xFFBDBDBD))
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Icon(imageVector = Icons.Default.Favorite, contentDescription = null, tint = Color(0xFFEF5350), modifier = Modifier.size(14.dp))
+                    Text(
+                        text = UiMappings.formatDashboardTime(post.timestamp),
+                        fontFamily = UnivsFontFamily,
+                        fontSize = 11.sp,
+                        color = Color(0xFFBDBDBD)
+                    )
+
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("·", fontFamily = UnivsFontFamily, fontSize = 11.sp, color = Color(0xFFBDBDBD))
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    Text(
+                        text = post.author,
+                        fontFamily = UnivsFontFamily,
+                        fontSize = 11.sp,
+                        color = Color(0xFF757575),
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    // ✅ 작성자 학교 인증 뱃지(이름 옆)
+                    if (!authorSchoolId.isNullOrBlank()) {
+                        Spacer(modifier = Modifier.width(6.dp))
+                        SchoolBadge(
+                            label = UiMappings.schoolLabel(authorSchoolId),
+                            color = authorSchoolColor,
+                            emphasize = isSameSchool
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.weight(1f))
+
+                    // ✅ 좋아요 UI: 작성자 학교색 기반(요구사항 반영)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .background(authorSchoolColor.copy(alpha = 0.10f), RoundedCornerShape(999.dp))
+                            .padding(horizontal = 10.dp, vertical = 5.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (post.likedByMe) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                            contentDescription = null,
+                            tint = authorSchoolColor,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(modifier = Modifier.width(5.dp))
+                        Text(
+                            text = post.likes.toString(),
+                            fontFamily = UnivsFontFamily,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = authorSchoolColor
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(10.dp))
+
+                    Icon(
+                        imageVector = Icons.Outlined.ChatBubbleOutline,
+                        contentDescription = null,
+                        tint = Color(0xFF9E9E9E),
+                        modifier = Modifier.size(14.dp)
+                    )
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text(text = post.likes.toString(), fontFamily = UnivsFontFamily, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF424242))
+                    Text(
+                        text = post.commentCount.toString(),
+                        fontFamily = UnivsFontFamily,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF424242)
+                    )
                 }
             }
 
+            // 썸네일
             if (!post.imageUri.isNullOrBlank()) {
                 Spacer(modifier = Modifier.width(12.dp))
 
-                // ✅ remember와 dataUrlToImageBitmapOrNull 에러 해결 부분
                 val decoded = remember(post.imageUri) {
                     post.imageUri?.let { dataUrlToImageBitmapOrNull(it) }
                 }
@@ -250,7 +350,7 @@ fun PostItem(post: Post, brandColor: Color, onClick: () -> Unit) {
                         bitmap = decoded,
                         contentDescription = null,
                         modifier = Modifier
-                            .size(55.dp)
+                            .size(75.dp)
                             .clip(RoundedCornerShape(12.dp)),
                         contentScale = ContentScale.Crop
                     )
@@ -259,7 +359,7 @@ fun PostItem(post: Post, brandColor: Color, onClick: () -> Unit) {
                         model = post.imageUri,
                         contentDescription = null,
                         modifier = Modifier
-                            .size(55.dp)
+                            .size(75.dp)
                             .clip(RoundedCornerShape(12.dp)),
                         contentScale = ContentScale.Crop
                     )
@@ -269,15 +369,24 @@ fun PostItem(post: Post, brandColor: Color, onClick: () -> Unit) {
     }
 }
 
-// ✅ [중요] 누락되었던 이미지 디코딩 함수 추가
-fun dataUrlToImageBitmapOrNull(dataUrl: String): ImageBitmap? {
-    return try {
-        val base64Part = dataUrl.substringAfter("base64,", missingDelimiterValue = "")
-        if (base64Part.isBlank()) return null
-        val bytes = Base64.decode(base64Part, Base64.DEFAULT)
-        val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size) ?: return null
-        bitmap.asImageBitmap()
-    } catch (_: Exception) {
-        null
+@Composable
+private fun SchoolBadge(
+    label: String,
+    color: Color,
+    emphasize: Boolean
+) {
+    val bg = if (emphasize) color.copy(alpha = 0.20f) else color.copy(alpha = 0.12f)
+    Box(
+        modifier = Modifier
+            .background(bg, RoundedCornerShape(10.dp))
+            .padding(horizontal = 8.dp, vertical = 3.dp)
+    ) {
+        Text(
+            text = label,
+            fontFamily = UnivsFontFamily,
+            fontSize = 10.sp,
+            fontWeight = FontWeight.ExtraBold,
+            color = color
+        )
     }
 }
