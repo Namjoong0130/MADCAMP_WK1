@@ -52,7 +52,7 @@ fun ScheduleScreen(
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Surface(
-                    modifier = Modifier.size(46.dp),
+                    modifier = Modifier.size(52.dp),
                     shape = RoundedCornerShape(12.dp),
                     color = Color.White,
                     shadowElevation = 2.dp,
@@ -61,7 +61,7 @@ fun ScheduleScreen(
                     Image(
                         painter = painterResource(id = userLogoRes),
                         contentDescription = "Logo",
-                        modifier = Modifier.padding(8.dp),
+                        modifier = Modifier.padding(1.dp),
                         contentScale = ContentScale.Fit
                     )
                 }
@@ -184,7 +184,7 @@ fun ScheduleScreen(
 @Composable
 fun ScoreBadge(label: String, score: Int, color: Color) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Text(text = label, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = color)
+        Text(text = label, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = color)
         Spacer(modifier = Modifier.width(4.dp))
         Text(text = score.toString(), fontSize = 16.sp, fontWeight = FontWeight.Black)
     }
