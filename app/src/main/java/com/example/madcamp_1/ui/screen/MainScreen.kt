@@ -111,11 +111,7 @@ fun MainScreen() {
         NavHost(
             navController = innerNavController,
             startDestination = "schedule",
-            modifier = Modifier.padding(top = 20.dp, // 상단 패딩 강제 제거
-                bottom = innerPadding.calculateBottomPadding(), // 하단바 높이만큼만 유지
-                start = 0.dp,
-                end = 0.dp)
-        ) {
+            modifier = Modifier.padding(innerPadding)){
             composable("schedule") { ScheduleRoute() }
             composable("dashboard") {
                 DashboardRoute(

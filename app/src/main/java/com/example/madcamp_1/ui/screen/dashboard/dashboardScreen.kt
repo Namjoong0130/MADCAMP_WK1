@@ -60,7 +60,7 @@ fun DashboardScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues = padding) // 상단 여백 제거
+                .padding(top = 0.dp, bottom = padding.calculateBottomPadding()) // 상단 여백 제거
                 .padding(horizontal = 16.dp)
         ) {
 
@@ -147,7 +147,7 @@ fun PostItem(post: Post, brandColor: Color, onClick: () -> Unit) {
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
-        Row(modifier = Modifier.padding(0.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Row(modifier = Modifier.padding(16.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Column(modifier = Modifier.weight(1f)) {
                 // 카테고리 배지 - 학교별 파스텔 톤 배경에 진한 텍스트
                 Surface(
