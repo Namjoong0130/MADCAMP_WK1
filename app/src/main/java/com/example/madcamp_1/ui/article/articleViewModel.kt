@@ -1,3 +1,4 @@
+// app/src/main/java/com/example/madcamp_1/ui/screen/article/articleViewModel.kt
 package com.example.madcamp_1.ui.screen.article
 
 import android.util.Log
@@ -57,7 +58,7 @@ class ArticleViewModel : ViewModel() {
                     category = category,
                     timestamp = parseIsoDateToMillis(dto.createdAt),
                     author = dto.author?.nickname ?: "익명",
-                    authorSchoolId = dto.author?.schoolId,     // ✅ 뱃지/정렬 기준
+                    authorSchoolId = dto.author?.schoolId,
                     imageUri = medias.firstOrNull()?.url,
                     likes = dto.likeCount,
                     likedByMe = dto.likedByMe ?: false,
@@ -103,10 +104,10 @@ class ArticleViewModel : ViewModel() {
                     body = CommentCreateRequest(content = content)
                 )
                 _commentText.value = ""
-                fetchComments(p.id)
 
-                // ✅ commentCount 동기화(서버가 detail에 반영한다는 가정)
-                _post.value = _post.value?.copy(commentCount = (_post.value?.commentCount ?: 0) + 1)
+                // ✅ 정합성: 댓글 목록 갱신 후, detail도 다시 불러서 commentCount/likedByMe 등 동기화
+                fetchComments(p.id)
+                fetch(p.id)
             } catch (e: Exception) {
                 Log.e("ArticleViewModel", "sendComment 실패: ${e.message}")
             } finally {
@@ -140,7 +141,6 @@ class ArticleViewModel : ViewModel() {
             "yyyy-MM-dd'T'HH:mm:ss'Z'",
             "yyyy-MM-dd'T'HH:mm:ss"
         )
-
         for (p in patterns) {
             try {
                 val f = SimpleDateFormat(p, Locale.US).apply { timeZone = TimeZone.getTimeZone("UTC") }

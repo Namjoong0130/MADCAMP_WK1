@@ -1,3 +1,4 @@
+// app/src/main/java/com/example/madcamp_1/ui/screen/article/articleScreen.kt
 package com.example.madcamp_1.ui.screen.article
 
 import android.graphics.BitmapFactory
@@ -31,9 +32,10 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import com.example.madcamp_1.data.utils.AuthManager
 import com.example.madcamp_1.ui.screen.dashboard.Post
-import com.example.madcamp_1.ui.util.UiMappings
 import com.example.madcamp_1.ui.theme.UnivsFontFamily
+import com.example.madcamp_1.ui.util.UiMappings
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -46,6 +48,9 @@ fun ArticleScreen(
     onSendComment: () -> Unit,
     onBack: () -> Unit
 ) {
+    val mySchoolId = AuthManager.getSchoolId()
+    val myBrandColor = UiMappings.schoolColor(mySchoolId)
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -59,18 +64,22 @@ fun ArticleScreen(
         }
     ) { padding ->
         if (post == null) {
-            Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
-            }
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .padding(padding),
+                contentAlignment = Alignment.Center
+            ) { CircularProgressIndicator() }
             return@Scaffold
         }
 
         val urls = remember(post.medias) {
-            post.medias
-                .mapNotNull { it.url?.takeIf { u -> u.isNotBlank() } }
+            post.medias.mapNotNull { it.url?.takeIf { u -> u.isNotBlank() } }
         }
+
         val authorSchoolColor = UiMappings.schoolColor(post.authorSchoolId)
         val authorSchoolLabel = UiMappings.schoolLabel(post.authorSchoolId)
+        val tagColor = UiMappings.tagColor(post.category)
 
         Column(
             modifier = Modifier
@@ -79,7 +88,7 @@ fun ArticleScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(20.dp)
         ) {
-            // ✅ 작성자/학교뱃지/시간/카테고리
+            // ✅ 작성자/학교뱃지/시간/태그
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     modifier = Modifier
@@ -102,7 +111,7 @@ fun ArticleScreen(
                             fontSize = 15.sp
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        // ✅ 학교 인증 뱃지(적합 위치: 작성자 이름 옆)
+                        // ✅ 학교 인증 뱃지(작성자 이름 옆)
                         Box(
                             modifier = Modifier
                                 .background(authorSchoolColor.copy(alpha = 0.12f), RoundedCornerShape(999.dp))
@@ -116,18 +125,29 @@ fun ArticleScreen(
                                 color = authorSchoolColor
                             )
                         }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        // ✅ 태그 칩(태그별 색)
+                        Box(
+                            modifier = Modifier
+                                .background(tagColor.copy(alpha = 0.10f), RoundedCornerShape(999.dp))
+                                .padding(horizontal = 8.dp, vertical = 3.dp)
+                        ) {
+                            Text(
+                                text = post.category,
+                                fontFamily = UnivsFontFamily,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = tagColor
+                            )
+                        }
                     }
 
-                    val tagColor = UiMappings.tagColor(post.category, authorSchoolColor)
                     Text(
-                        text = "${UiMappings.formatRelativeTime(post.timestamp)} | ${post.category}",
+                        text = UiMappings.formatRelativeTime(post.timestamp),
                         fontFamily = UnivsFontFamily,
                         fontSize = 12.sp,
                         color = Color.Gray
                     )
-
-                    // (원하시면 여기에도 카테고리 칩 추가 가능)
-                    Spacer(modifier = Modifier.height(2.dp))
                 }
             }
 
@@ -187,7 +207,7 @@ fun ArticleScreen(
             Spacer(modifier = Modifier.height(24.dp))
             HorizontalDivider(color = Color(0xFFF5F5F5))
 
-            // ✅ 좋아요 토글(하트 토글 + 수)
+            // ✅ 좋아요 토글(하트 토글 + 수) - 작성자 학교색으로 강조
             Row(
                 modifier = Modifier.padding(vertical = 14.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -203,7 +223,8 @@ fun ArticleScreen(
                     text = "좋아요 ${post.likes}",
                     fontFamily = UnivsFontFamily,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp
+                    fontSize = 16.sp,
+                    color = Color(0xFF212121)
                 )
 
                 Spacer(modifier = Modifier.width(16.dp))
@@ -219,7 +240,7 @@ fun ArticleScreen(
             HorizontalDivider(color = Color(0xFFF5F5F5))
             Spacer(modifier = Modifier.height(12.dp))
 
-            // ✅ 댓글 목록(대화형: 작성자와 같은 학교면 우측, 아니면 좌측)
+            // ✅ 댓글 목록(대화형)
             Text(
                 text = "댓글",
                 fontFamily = UnivsFontFamily,
@@ -236,9 +257,9 @@ fun ArticleScreen(
                 Spacer(modifier = Modifier.height(8.dp))
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
-            // ✅ 댓글 입력창(작성자 학교 brandcolor 반영은 "말풍선"에서 댓글 작성자 학교색으로 표현)
+            // ✅ 댓글 입력창: "내 학교색"으로 브랜드 일관성 유지
             Row(verticalAlignment = Alignment.CenterVertically) {
                 OutlinedTextField(
                     value = commentText,
@@ -247,10 +268,20 @@ fun ArticleScreen(
                     placeholder = { Text("댓글을 입력하세요", fontFamily = UnivsFontFamily) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
-                    keyboardActions = KeyboardActions(onSend = { onSendComment() })
+                    keyboardActions = KeyboardActions(onSend = { onSendComment() }),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = myBrandColor,
+                        cursorColor = myBrandColor
+                    )
                 )
                 Spacer(modifier = Modifier.width(10.dp))
-                FilledIconButton(onClick = onSendComment) {
+                FilledIconButton(
+                    onClick = onSendComment,
+                    colors = IconButtonDefaults.filledIconButtonColors(
+                        containerColor = myBrandColor,
+                        contentColor = Color.White
+                    )
+                ) {
                     Icon(Icons.Default.Send, contentDescription = null)
                 }
             }
@@ -265,9 +296,11 @@ private fun ChatBubble(
     comment: UiComment,
     postAuthorSchoolId: String?
 ) {
+    // ✅ "작성자와 동일한 학교"면 우측 / 아니면 좌측
     val isSameSchoolAsAuthor = (comment.authorSchoolId != null && comment.authorSchoolId == postAuthorSchoolId)
     val align = if (isSameSchoolAsAuthor) Arrangement.End else Arrangement.Start
     val bubbleColor = UiMappings.schoolColor(comment.authorSchoolId)
+    val badgeLabel = UiMappings.schoolLabel(comment.authorSchoolId)
 
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -296,7 +329,7 @@ private fun ChatBubble(
                         .padding(horizontal = 8.dp, vertical = 2.dp)
                 ) {
                     Text(
-                        text = UiMappings.schoolLabel(comment.authorSchoolId),
+                        text = badgeLabel,
                         fontFamily = UnivsFontFamily,
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,

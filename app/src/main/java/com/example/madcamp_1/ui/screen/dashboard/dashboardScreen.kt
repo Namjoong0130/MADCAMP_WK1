@@ -1,3 +1,4 @@
+// app/src/main/java/com/example/madcamp_1/ui/screen/dashboard/dashboardScreen.kt
 package com.example.madcamp_1.ui.screen.dashboard
 
 import androidx.compose.foundation.Image
@@ -11,12 +12,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.Campaign
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.HelpOutline
 import androidx.compose.material.icons.outlined.Lightbulb
-import androidx.compose.material.icons.filled.ChatBubbleOutline
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
@@ -35,10 +36,9 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.madcamp_1.data.utils.AuthManager
 import com.example.madcamp_1.ui.theme.UnivsFontFamily
+import com.example.madcamp_1.ui.util.UiMappings
 import com.example.madcamp_1.ui.util.dataUrlToImageBitmapOrNull
-import java.util.concurrent.TimeUnit
 
-// [1] 태그 디자인 데이터 모델
 data class TagUIConfig(
     val name: String,
     val icon: ImageVector,
@@ -59,14 +59,13 @@ fun DashboardScreen(
     onRefresh: () -> Unit
 ) {
     val mySchoolId = AuthManager.getSchoolId()
-    val isPostech = mySchoolId.contains("postech", ignoreCase = true)
-    val brandColor = if (isPostech) Color(0xFFE0224E) else Color(0xFF005EB8)
+    val myBrandColor = UiMappings.schoolColor(mySchoolId)
 
     val tagConfigs = listOf(
-        TagUIConfig("공지", Icons.Outlined.Campaign, Color(0xFF9C27B0)),
-        TagUIConfig("소통", Icons.Outlined.ChatBubbleOutline, Color(0xFF03A9F4)),
-        TagUIConfig("꿀팁", Icons.Outlined.Lightbulb, Color(0xFFFFB300)),
-        TagUIConfig("Q&A", Icons.Outlined.HelpOutline, Color(0xFF4CAF50))
+        TagUIConfig("공지", Icons.Outlined.Campaign, UiMappings.tagColor("공지")),
+        TagUIConfig("소통", Icons.Outlined.ChatBubbleOutline, UiMappings.tagColor("소통")),
+        TagUIConfig("꿀팁", Icons.Outlined.Lightbulb, UiMappings.tagColor("꿀팁")),
+        TagUIConfig("Q&A", Icons.Outlined.HelpOutline, UiMappings.tagColor("Q&A"))
     )
 
     val state = rememberPullToRefreshState()
@@ -75,7 +74,7 @@ fun DashboardScreen(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = onNavigateToWrite,
-                containerColor = brandColor,
+                containerColor = myBrandColor,
                 contentColor = Color.White,
                 shape = CircleShape
             ) { Icon(Icons.Default.Edit, contentDescription = null) }
@@ -95,7 +94,7 @@ fun DashboardScreen(
                     isRefreshing = isLoading,
                     modifier = Modifier.align(Alignment.TopCenter),
                     containerColor = Color.White,
-                    color = brandColor
+                    color = myBrandColor
                 )
             }
         ) {
@@ -117,7 +116,8 @@ fun DashboardScreen(
                         unfocusedContainerColor = Color.White,
                         focusedContainerColor = Color.White,
                         unfocusedBorderColor = Color.Transparent,
-                        focusedBorderColor = brandColor
+                        focusedBorderColor = myBrandColor,
+                        cursorColor = myBrandColor
                     )
                 )
 
@@ -177,7 +177,7 @@ fun DashboardScreen(
 
                 if (isLoading && posts.isEmpty()) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(color = brandColor)
+                        CircularProgressIndicator(color = myBrandColor)
                     }
                 } else {
                     LazyColumn(
@@ -205,10 +205,10 @@ private fun PostItem(
     mySchoolId: String,
     onClick: () -> Unit
 ) {
-    val tagColor = tagColorFor(post.category)
+    val tagColor = UiMappings.tagColor(post.category)
     val authorSchoolId = post.authorSchoolId
-    val isSameSchool = authorSchoolId != null && mySchoolId.isNotBlank() &&
-            authorSchoolId.equals(mySchoolId, ignoreCase = true)
+    val authorSchoolColor = UiMappings.schoolColor(authorSchoolId)
+    val isSameSchool = !authorSchoolId.isNullOrBlank() && authorSchoolId.equals(mySchoolId, ignoreCase = true)
 
     Card(
         modifier = Modifier
@@ -226,7 +226,7 @@ private fun PostItem(
         ) {
             Column(modifier = Modifier.weight(1f)) {
 
-                // ✅ 태그 칩(태그별 색)
+                // ✅ 태그 칩(태그별 색 고정)
                 Surface(
                     color = tagColor.copy(alpha = 0.10f),
                     shape = RoundedCornerShape(10.dp)
@@ -263,23 +263,16 @@ private fun PostItem(
                 Spacer(modifier = Modifier.height(12.dp))
 
                 // ✅ 하단 메타(시간 · 작성자 + 학교뱃지 · 좋아요/댓글)
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = formatDashboardTime(post.timestamp),
+                        text = UiMappings.formatDashboardTime(post.timestamp),
                         fontFamily = UnivsFontFamily,
                         fontSize = 11.sp,
                         color = Color(0xFFBDBDBD)
                     )
 
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "·",
-                        fontFamily = UnivsFontFamily,
-                        fontSize = 11.sp,
-                        color = Color(0xFFBDBDBD)
-                    )
+                    Text("·", fontFamily = UnivsFontFamily, fontSize = 11.sp, color = Color(0xFFBDBDBD))
                     Spacer(modifier = Modifier.width(8.dp))
 
                     Text(
@@ -290,37 +283,45 @@ private fun PostItem(
                         fontWeight = FontWeight.Bold
                     )
 
-                    // ✅ 작성자 학교 인증 뱃지(작성자 이름 옆)
+                    // ✅ 작성자 학교 인증 뱃지(이름 옆)
                     if (!authorSchoolId.isNullOrBlank()) {
                         Spacer(modifier = Modifier.width(6.dp))
                         SchoolBadge(
-                            schoolId = authorSchoolId,
+                            label = UiMappings.schoolLabel(authorSchoolId),
+                            color = authorSchoolColor,
                             emphasize = isSameSchool
                         )
                     }
 
                     Spacer(modifier = Modifier.weight(1f))
 
-                    // 좋아요
-                    Icon(
-                        imageVector = Icons.Default.Favorite,
-                        contentDescription = null,
-                        tint = Color(0xFFEF5350),
-                        modifier = Modifier.size(14.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = post.likes.toString(),
-                        fontFamily = UnivsFontFamily,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF424242)
-                    )
+                    // ✅ 좋아요 UI: 작성자 학교색 기반(요구사항 반영)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .background(authorSchoolColor.copy(alpha = 0.10f), RoundedCornerShape(999.dp))
+                            .padding(horizontal = 10.dp, vertical = 5.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (post.likedByMe) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                            contentDescription = null,
+                            tint = authorSchoolColor,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(modifier = Modifier.width(5.dp))
+                        Text(
+                            text = post.likes.toString(),
+                            fontFamily = UnivsFontFamily,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = authorSchoolColor
+                        )
+                    }
 
-                    // (선택) 댓글 수: Post에 commentCount가 있을 때만 의미 있음
                     Spacer(modifier = Modifier.width(10.dp))
+
                     Icon(
-                        imageVector = Icons.Filled.ChatBubbleOutline,
+                        imageVector = Icons.Outlined.ChatBubbleOutline,
                         contentDescription = null,
                         tint = Color(0xFF9E9E9E),
                         modifier = Modifier.size(14.dp)
@@ -370,13 +371,11 @@ private fun PostItem(
 
 @Composable
 private fun SchoolBadge(
-    schoolId: String,
+    label: String,
+    color: Color,
     emphasize: Boolean
 ) {
-    val (label, color) = schoolBadgeLabelAndColor(schoolId)
-    val bg = if (emphasize) color.copy(alpha = 0.18f) else color.copy(alpha = 0.12f)
-    val textColor = color
-
+    val bg = if (emphasize) color.copy(alpha = 0.20f) else color.copy(alpha = 0.12f)
     Box(
         modifier = Modifier
             .background(bg, RoundedCornerShape(10.dp))
@@ -387,59 +386,7 @@ private fun SchoolBadge(
             fontFamily = UnivsFontFamily,
             fontSize = 10.sp,
             fontWeight = FontWeight.ExtraBold,
-            color = textColor
+            color = color
         )
-    }
-}
-
-private fun tagColorFor(tagName: String): Color {
-    return when (tagName.trim()) {
-        "공지" -> Color(0xFF9C27B0)
-        "소통" -> Color(0xFF03A9F4)
-        "꿀팁" -> Color(0xFFFFB300)
-        "Q&A" -> Color(0xFF4CAF50)
-        else -> Color(0xFF607D8B) // fallback
-    }
-}
-
-private fun schoolBadgeLabelAndColor(schoolId: String): Pair<String, Color> {
-    val lower = schoolId.lowercase()
-    return when {
-        lower.contains("kaist") -> "KAIST" to Color(0xFF005EB8)
-        lower.contains("postech") -> "POSTECH" to Color(0xFFE0224E)
-        lower.contains("yonsei") -> "YONSEI" to Color(0xFF0D47A1)
-        lower.contains("korea") -> "KOREA" to Color(0xFFB71C1C)
-        else -> "SCHOOL" to Color(0xFF616161)
-    }
-}
-
-/**
- * ✅ 작성 시간 표시 기준(대시보드)
- * - 0~59초: 방금
- * - 1~59분: N분 전
- * - 1~23시간: N시간 전
- * - 어제: 어제
- * - 그 외: MM/dd
- */
-private fun formatDashboardTime(timestamp: Long): String {
-    val now = System.currentTimeMillis()
-    val diff = now - timestamp
-    if (diff < 0) return "방금"
-
-    val minutes = TimeUnit.MILLISECONDS.toMinutes(diff)
-    val hours = TimeUnit.MILLISECONDS.toHours(diff)
-    val days = TimeUnit.MILLISECONDS.toDays(diff)
-
-    return when {
-        diff < 60_000L -> "방금"
-        minutes < 60 -> "${minutes}분 전"
-        hours < 24 -> "${hours}시간 전"
-        days == 1L -> "어제"
-        else -> {
-            // 가벼운 날짜 포맷 (MM/dd)
-            val month = java.util.Calendar.getInstance().apply { timeInMillis = timestamp }.get(java.util.Calendar.MONTH) + 1
-            val day = java.util.Calendar.getInstance().apply { timeInMillis = timestamp }.get(java.util.Calendar.DAY_OF_MONTH)
-            "%02d/%02d".format(month, day)
-        }
     }
 }
