@@ -19,138 +19,81 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import com.example.madcamp_1.ui.theme.UnivsFontFamily
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WriteScreen(
     viewModel: WriteViewModel,
     onBack: () -> Unit,
-    onComplete: () -> Unit
+    onComplete: (String?, String, String, String) -> Unit // 이미지(Base64), 제목, 내용, 태그 전달
 ) {
+    val context = LocalContext.current
     val tags = listOf("소통", "꿀팁", "Q&A", "공지")
-
-    // 갤러리(Photo Picker) 런처 설정
-    val galleryLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.PickVisualMedia()
-    ) { uri: Uri? ->
-        viewModel.onImageSelected(uri)
+    val galleryLauncher = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) {
+        viewModel.onImageSelected(it)
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
-        // [1] 상단 헤더: 취소, 제목, 게시 버튼
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = onBack) {
-                Icon(Icons.Default.Close, contentDescription = "취소")
-            }
-            Text(
-                text = "글 쓰기",
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold
-            )
+    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+        // [1] 상단 헤더
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = onBack) { Icon(Icons.Default.Close, contentDescription = null) }
+            Text("글 쓰기", fontSize = 18.sp, fontWeight = FontWeight.Bold, fontFamily = UnivsFontFamily)
             Button(
-                onClick = onComplete,
+                onClick = {
+                    val base64 = viewModel.getBase64Image(context)
+                    onComplete(base64, viewModel.title, viewModel.content, viewModel.selectedTag)
+                },
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFC62828))
-            ) {
-                Text("게시", color = Color.White)
-            }
+            ) { Text("게시", color = Color.White, fontFamily = UnivsFontFamily) }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // [2] 태그 선택 영역
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        // [2] 태그 선택
+        LazyRow(modifier = Modifier.padding(vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             items(tags) { tag ->
                 FilterChip(
                     selected = viewModel.selectedTag == tag,
                     onClick = { viewModel.onTagSelect(tag) },
-                    label = { Text(tag) }
+                    label = { Text(tag, fontFamily = UnivsFontFamily) }
                 )
             }
         }
 
-        // [3] 제목 입력 필드 (Material 3 컬러 오류 수정 버전)
+        // [3] 제목 및 본문
         TextField(
-            value = viewModel.title,
-            onValueChange = viewModel::onTitleChange,
-            placeholder = { Text("제목") },
+            value = viewModel.title, onValueChange = viewModel::onTitleChange,
+            placeholder = { Text("제목", fontFamily = UnivsFontFamily) },
             modifier = Modifier.fillMaxWidth(),
-            colors = TextFieldDefaults.colors(
-                focusedContainerColor = Color.Transparent,
-                unfocusedContainerColor = Color.Transparent,
-                disabledContainerColor = Color.Transparent,
-                focusedIndicatorColor = Color(0xFFC62828),
-                unfocusedIndicatorColor = Color.LightGray
-            )
+            textStyle = LocalTextStyle.current.copy(fontFamily = UnivsFontFamily, fontWeight = FontWeight.Bold),
+            colors = TextFieldDefaults.colors(focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent)
         )
-
-        // [4] 본문 입력 필드 (높이 가득 채우기)
         TextField(
-            value = viewModel.content,
-            onValueChange = viewModel::onContentChange,
-            placeholder = { Text("내용을 입력하세요.") },
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f),
-            colors = TextFieldDefaults.colors(
-                focusedContainerColor = Color.Transparent,
-                unfocusedContainerColor = Color.Transparent,
-                disabledContainerColor = Color.Transparent,
-                focusedIndicatorColor = Color.Transparent,
-                unfocusedIndicatorColor = Color.Transparent
-            )
+            value = viewModel.content, onValueChange = viewModel::onContentChange,
+            placeholder = { Text("내용을 입력하세요.", fontFamily = UnivsFontFamily) },
+            modifier = Modifier.fillMaxWidth().weight(1f),
+            textStyle = LocalTextStyle.current.copy(fontFamily = UnivsFontFamily),
+            colors = TextFieldDefaults.colors(focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent, focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent)
         )
 
-        // [5] 하단 도구바: 카메라 아이콘 버튼
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // 카메라 아이콘 버튼을 눌러 갤러리 호출
+        // [4] 하단 이미지 추가 바
+        Row(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             IconButton(
-                onClick = {
-                    galleryLauncher.launch(
-                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                    )
-                },
-                modifier = Modifier
-                    .size(48.dp)
-                    .border(1.dp, Color.LightGray, RoundedCornerShape(8.dp))
-            ) {
-                Icon(
-                    imageVector = Icons.Default.CameraAlt, // 플러스에서 카메라로 변경됨
-                    contentDescription = "이미지 추가",
-                    tint = Color.Gray
-                )
-            }
+                onClick = { galleryLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
+                modifier = Modifier.size(48.dp).border(1.dp, Color.LightGray, RoundedCornerShape(8.dp))
+            ) { Icon(Icons.Default.CameraAlt, contentDescription = null, tint = Color.Gray) }
 
-            // 선택된 이미지 미리보기
             if (viewModel.selectedImageUri != null) {
                 Spacer(modifier = Modifier.width(12.dp))
-                Box {
-                    AsyncImage(
-                        model = viewModel.selectedImageUri,
-                        contentDescription = null,
-                        modifier = Modifier
-                            .size(48.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .border(0.5.dp, Color.LightGray, RoundedCornerShape(8.dp)),
-                        contentScale = ContentScale.Crop
-                    )
-                }
+                AsyncImage(
+                    model = viewModel.selectedImageUri, contentDescription = null,
+                    modifier = Modifier.size(48.dp).clip(RoundedCornerShape(8.dp)).border(0.5.dp, Color.LightGray, RoundedCornerShape(8.dp)),
+                    contentScale = ContentScale.Crop
+                )
             }
         }
     }
