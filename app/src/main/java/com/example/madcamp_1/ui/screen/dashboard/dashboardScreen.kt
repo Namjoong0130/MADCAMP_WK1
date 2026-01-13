@@ -244,16 +244,16 @@ fun PostItem(post: Post, brandColor: Color, onClick: () -> Unit) {
             if (!post.imageUri.isNullOrBlank()) {
                 Spacer(modifier = Modifier.width(12.dp))
 
-                val decoded = remember(post.imageUri) {
+                val decodedThumb = remember(post.imageUri) {
                     post.imageUri?.let { dataUrlToImageBitmapOrNull(it) }
                 }
 
-                if (decoded != null) {
+                if (decodedThumb != null) {
                     Image(
-                        bitmap = decoded,
+                        bitmap = decodedThumb,
                         contentDescription = null,
                         modifier = Modifier
-                            .size(75.dp) // ✅ 썸네일: 기존 크기 유지(원래값으로)
+                            .size(75.dp) // ✅ 여기서 원하는 썸네일 크기로 (예: 기존 55.dp)
                             .clip(RoundedCornerShape(12.dp)),
                         contentScale = ContentScale.Crop
                     )
@@ -262,7 +262,7 @@ fun PostItem(post: Post, brandColor: Color, onClick: () -> Unit) {
                         model = post.imageUri,
                         contentDescription = null,
                         modifier = Modifier
-                            .size(75.dp) // ✅ 썸네일: 기존 크기 유지
+                            .size(75.dp)
                             .clip(RoundedCornerShape(12.dp)),
                         contentScale = ContentScale.Crop
                     )
