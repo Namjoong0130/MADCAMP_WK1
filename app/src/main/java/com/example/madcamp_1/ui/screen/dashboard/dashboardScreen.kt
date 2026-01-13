@@ -26,6 +26,12 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.madcamp_1.data.utils.AuthManager
 import com.example.madcamp_1.ui.theme.UnivsFontFamily
+import android.graphics.BitmapFactory
+import android.util.Base64
+import androidx.compose.foundation.Image
+import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
 
 // [핵심] 이 정의가 있어야 에러가 나지 않습니다.
 data class TagUIConfig(
@@ -44,11 +50,13 @@ fun DashboardScreen(
     onSearchChange: (String) -> Unit,
     onTagSelect: (String) -> Unit,
     onNavigateToWrite: () -> Unit,
+    // ✅ Int -> String
     onPostClick: (String) -> Unit,
     onRefresh: () -> Unit
 ) {
     val schoolId = AuthManager.getSchoolId()
     val isPostech = schoolId.contains("postech", ignoreCase = true)
+
     val brandColor = if (isPostech) Color(0xFFE0224E) else Color(0xFF005EB8)
 
     // "전체"를 제외한 4가지 태그만 설정
@@ -112,6 +120,7 @@ fun DashboardScreen(
                     )
                 )
 
+                // 태그 바
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // [3] 태그 바 (가로로 길게 늘어지지 않게 수정)
@@ -148,17 +157,16 @@ fun DashboardScreen(
                                     )
                                 }
                             },
-                            shape = RoundedCornerShape(13.dp),
+                            shape = RoundedCornerShape(12.dp),
                             colors = FilterChipDefaults.filterChipColors(
-                                containerColor = containerColor,
-                                labelColor = contentColor,
-                                selectedContainerColor = config.color,
+                                containerColor = Color.White,
+                                selectedContainerColor = brandColor,
                                 selectedLabelColor = Color.White
                             ),
                             border = FilterChipDefaults.filterChipBorder(
                                 enabled = true,
                                 selected = isSelected,
-                                borderColor = borderColor,
+                                borderColor = Color(0xFFEEEEEE),
                                 selectedBorderColor = Color.Transparent,
                                 borderWidth = 1.dp
                             )
@@ -168,7 +176,6 @@ fun DashboardScreen(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // 게시글 리스트
                 if (isLoading && posts.isEmpty()) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator(color = brandColor)
@@ -183,7 +190,7 @@ fun DashboardScreen(
                             PostItem(
                                 post = post,
                                 brandColor = brandColor,
-                                onClick = { onPostClick(post.id) }
+                                onClick = { onPostClick(post.id) } // ✅ String id 전달
                             )
                         }
                     }
@@ -245,8 +252,8 @@ fun PostItem(post: Post, brandColor: Color, onClick: () -> Unit) {
 
                 Spacer(modifier = Modifier.height(12.dp))
 
+                // ✅ 작성자/시간 하드코딩 제거
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    // formatPostTime은 외부 유틸 사용
                     Text(
                         text = "${formatPostTime(post.timestamp)} · ${post.author}",
                         fontFamily = UnivsFontFamily,
@@ -277,15 +284,42 @@ fun PostItem(post: Post, brandColor: Color, onClick: () -> Unit) {
 
             if (!post.imageUri.isNullOrBlank()) {
                 Spacer(modifier = Modifier.width(12.dp))
-                AsyncImage(
-                    model = post.imageUri,
-                    contentDescription = null,
-                    modifier = Modifier
-                        .size(75.dp)
-                        .clip(RoundedCornerShape(12.dp)),
-                    contentScale = ContentScale.Crop
-                )
+
+                val decoded = remember(post.imageUri) {
+                    post.imageUri?.let { dataUrlToImageBitmapOrNull(it) }
+                }
+
+                if (decoded != null) {
+                    Image(
+                        bitmap = decoded,
+                        contentDescription = null,
+                        modifier = Modifier
+                            .size(55.dp)
+                            .clip(RoundedCornerShape(12.dp)),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    AsyncImage(
+                        model = post.imageUri,
+                        contentDescription = null,
+                        modifier = Modifier
+                            .size(55.dp)
+                            .clip(RoundedCornerShape(12.dp)),
+                        contentScale = ContentScale.Crop
+                    )
+                }
             }
         }
+    }
+}
+fun dataUrlToImageBitmapOrNull(dataUrl: String): ImageBitmap? {
+    return try {
+        val base64Part = dataUrl.substringAfter("base64,", missingDelimiterValue = "")
+        if (base64Part.isBlank()) return null
+        val bytes = Base64.decode(base64Part, Base64.DEFAULT)
+        val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size) ?: return null
+        bitmap.asImageBitmap()
+    } catch (_: Exception) {
+        null
     }
 }
