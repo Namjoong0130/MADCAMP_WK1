@@ -18,10 +18,10 @@ const PostCreateSchema = z.object({
 });
 const PostUpdateSchema = PostCreateSchema.partial();
 
-function canSeeSchoolOnlyPost(reqUser: any, postAuthorSchoolId: string | null) {
-  if (!reqUser) return false;
-  if (reqUser.role === "ADMIN") return true;
-  return reqUser.schoolId && postAuthorSchoolId && reqUser.schoolId === postAuthorSchoolId;
+function toClientPost(post: any) {
+  // ✅ PostMedia[] -> Media[] 로 평탄화
+  const medias = Array.isArray(post.medias) ? post.medias.map((pm: any) => pm.media).filter(Boolean) : [];
+  return { ...post, medias };
 }
 
 // GET /posts (public, but SCHOOL_ONLY는 필터링/권한처리)
@@ -34,8 +34,6 @@ postsRouter.get(
     const schoolId = req.query.schoolId ? String(req.query.schoolId) : undefined;
     const tag = req.query.tag ? String(req.query.tag) : undefined;
 
-    // 인증 optional: likedByMe 제공을 위해 Bearer가 있으면 읽어볼 수도 있으나,
-    // 여기서는 단순화를 위해 "public list"에서는 likedByMe를 생략.
     const where: any = {
       ...(visibility ? { visibility } : {}),
       ...(tag ? { tags: { some: { name: tag } } } : {}),
@@ -57,6 +55,14 @@ postsRouter.get(
         createdAt: true,
         author: { select: { id: true, nickname: true, schoolId: true, profileImageUrl: true } },
         tags: { include: { tag: { select: { id: true, name: true } } } },
+        // ✅ 목록에서도 대표 이미지(첫 장) 정도는 내려줌
+        medias: {
+          orderBy: { sortOrder: "asc" },
+          take: 1,
+          include: {
+            media: { select: { id: true, url: true, mimeType: true, size: true, width: true, height: true } },
+          },
+        },
       },
     });
 
@@ -67,11 +73,13 @@ postsRouter.get(
     const items = hasNext ? filtered.slice(0, limit) : filtered;
     const nextCursor = hasNext ? items[items.length - 1]?.id ?? null : null;
 
-    // contentPreview
-    const mapped = items.map((p) => ({
-      ...p,
-      contentPreview: p.content.length > 80 ? p.content.slice(0, 80) : p.content,
-    }));
+    const mapped = items.map((p) => {
+      const flattened = toClientPost(p);
+      return {
+        ...flattened,
+        contentPreview: p.content.length > 80 ? p.content.slice(0, 80) : p.content,
+      };
+    });
 
     res.json({ items: mapped, nextCursor });
   })
@@ -98,11 +106,16 @@ postsRouter.post(
       include: {
         author: { select: { id: true, nickname: true, schoolId: true, profileImageUrl: true } },
         tags: { include: { tag: { select: { id: true, name: true } } } },
-        medias: { include: { media: { select: { id: true, url: true, mimeType: true, size: true, width: true, height: true } } } },
+        medias: {
+          orderBy: { sortOrder: "asc" },
+          include: {
+            media: { select: { id: true, url: true, mimeType: true, size: true, width: true, height: true } },
+          },
+        },
       },
     });
 
-    res.status(201).json(created);
+    res.status(201).json(toClientPost(created));
   })
 );
 
@@ -111,26 +124,29 @@ postsRouter.get(
   "/:id",
   asyncHandler(async (req, res) => {
     const id = req.params.id;
-    if (typeof id !== 'string') throw new HttpError(400, "Invalid id", "INVALID_ID");
+    if (typeof id !== "string") throw new HttpError(400, "Invalid id", "INVALID_ID");
 
     const post = await prisma.post.findUnique({
       where: { id },
       include: {
         author: { select: { id: true, nickname: true, schoolId: true, profileImageUrl: true } },
         tags: { include: { tag: { select: { id: true, name: true } } } },
-        medias: { include: { media: { select: { id: true, url: true, mimeType: true, size: true, width: true, height: true } } } },
+        medias: {
+          orderBy: { sortOrder: "asc" },
+          include: {
+            media: { select: { id: true, url: true, mimeType: true, size: true, width: true, height: true } },
+          },
+        },
       },
     });
 
     if (!post) throw new HttpError(404, "리소스를 찾을 수 없습니다.", "NOT_FOUND");
 
     if (post.visibility === "SCHOOL_ONLY") {
-      // 로그인 없이 보면 차단
       throw new HttpError(403, "권한이 없습니다.", "FORBIDDEN");
-      // (선택) 토큰 optional 파싱을 원하면 여기 로직 확장
     }
 
-    res.json(post);
+    res.json(toClientPost(post));
   })
 );
 
@@ -140,7 +156,7 @@ postsRouter.patch(
   requireAuth,
   asyncHandler(async (req, res) => {
     const id = req.params.id;
-    if (typeof id !== 'string') throw new HttpError(400, "Invalid id", "INVALID_ID");
+    if (typeof id !== "string") throw new HttpError(400, "Invalid id", "INVALID_ID");
     const body = PostUpdateSchema.parse(req.body);
 
     const post = await prisma.post.findUnique({ where: { id }, select: { id: true, authorId: true } });
@@ -153,17 +169,26 @@ postsRouter.patch(
         ...(body.title !== undefined ? { title: body.title } : {}),
         ...(body.content !== undefined ? { content: body.content } : {}),
         ...(body.visibility !== undefined ? { visibility: body.visibility } : {}),
-        ...(body.tagIds !== undefined ? { tags: { set: body.tagIds.map((tid) => ({ postId_tagId: { postId: id, tagId: tid } })) } } : {}),
-        ...(body.mediaIds !== undefined ? { medias: { set: body.mediaIds.map((mid) => ({ postId_mediaId: { postId: id, mediaId: mid } })) } } : {}),
+        ...(body.tagIds !== undefined
+          ? { tags: { set: body.tagIds.map((tid) => ({ postId_tagId: { postId: id, tagId: tid } })) } }
+          : {}),
+        ...(body.mediaIds !== undefined
+          ? { medias: { set: body.mediaIds.map((mid) => ({ postId_mediaId: { postId: id, mediaId: mid } })) } }
+          : {}),
       },
       include: {
         author: { select: { id: true, nickname: true, schoolId: true, profileImageUrl: true } },
         tags: { include: { tag: { select: { id: true, name: true } } } },
-        medias: { include: { media: { select: { id: true, url: true, mimeType: true, size: true, width: true, height: true } } } },
+        medias: {
+          orderBy: { sortOrder: "asc" },
+          include: {
+            media: { select: { id: true, url: true, mimeType: true, size: true, width: true, height: true } },
+          },
+        },
       },
     });
 
-    res.json(updated);
+    res.json(toClientPost(updated));
   })
 );
 
@@ -173,7 +198,7 @@ postsRouter.delete(
   requireAuth,
   asyncHandler(async (req, res) => {
     const id = req.params.id;
-    if (typeof id !== 'string') throw new HttpError(400, "Invalid id", "INVALID_ID");
+    if (typeof id !== "string") throw new HttpError(400, "Invalid id", "INVALID_ID");
 
     const post = await prisma.post.findUnique({ where: { id }, select: { id: true, authorId: true } });
     if (!post) throw new HttpError(404, "리소스를 찾을 수 없습니다.", "NOT_FOUND");
@@ -190,26 +215,35 @@ postsRouter.post(
   requireAuth,
   asyncHandler(async (req, res) => {
     const postId = req.params.id;
-    if (typeof postId !== 'string') throw new HttpError(400, "Invalid id", "INVALID_ID");
+    if (typeof postId !== "string") throw new HttpError(400, "Invalid id", "INVALID_ID");
     const userId = req.user!.id;
 
     const post = await prisma.post.findUnique({ where: { id: postId }, select: { id: true, likeCount: true } });
     if (!post) throw new HttpError(404, "리소스를 찾을 수 없습니다.", "NOT_FOUND");
 
-    // PostLike (userId, postId) 유니크라고 가정
-    const existed = await prisma.postLike.findUnique({ where: { userId_postId: { userId, postId } } }).catch(() => null);
+    const existed = await prisma.postLike
+      .findUnique({ where: { userId_postId: { userId, postId } } })
+      .catch(() => null);
 
     let liked: boolean;
     let likeCount: number;
 
     if (existed) {
       await prisma.postLike.delete({ where: { userId_postId: { userId, postId } } });
-      const updated = await prisma.post.update({ where: { id: postId }, data: { likeCount: { decrement: 1 } }, select: { likeCount: true } });
+      const updated = await prisma.post.update({
+        where: { id: postId },
+        data: { likeCount: { decrement: 1 } },
+        select: { likeCount: true },
+      });
       liked = false;
       likeCount = updated.likeCount;
     } else {
       await prisma.postLike.create({ data: { userId, postId } });
-      const updated = await prisma.post.update({ where: { id: postId }, data: { likeCount: { increment: 1 } }, select: { likeCount: true } });
+      const updated = await prisma.post.update({
+        where: { id: postId },
+        data: { likeCount: { increment: 1 } },
+        select: { likeCount: true },
+      });
       liked = true;
       likeCount = updated.likeCount;
     }
