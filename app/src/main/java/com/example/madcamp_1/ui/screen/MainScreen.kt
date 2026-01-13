@@ -113,7 +113,14 @@ fun MainScreen() {
             navController = innerNavController,
             startDestination = "schedule",
             modifier = Modifier.padding(innerPadding)){
-            composable("schedule") { ScheduleRoute() }
+            composable("schedule") {
+                ScheduleRoute(
+                    onNavigateToInfo = { category ->
+                        // "축구", "해킹" 등의 문자열을 가지고 이동합니다.
+                        innerNavController.navigate("info/$category")
+                    }
+                )
+            }
             composable("dashboard") {
                 val searchText by dashboardViewModel.searchText.collectAsState()
                 val selectedTag by dashboardViewModel.selectedTag.collectAsState()
