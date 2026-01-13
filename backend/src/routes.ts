@@ -18,6 +18,7 @@ import { deviceTokensRouter } from "./modules/deviceTokens/deviceTokens.router.j
 import { notificationsRouter } from "./modules/notifications/notifications.router.js";
 import { shareLinksRouter } from "./modules/shareLinks/shareLinks.router.js";
 
+
 export const routes = Router();
 
 // Swagger UI (/docs)
@@ -43,4 +44,7 @@ routes.use("/device-tokens", deviceTokensRouter);
 routes.use("/notifications", notificationsRouter);
 routes.use("/share-links", shareLinksRouter);
 routes.use("/tags", tagsRouter);
+routes.use(authRouter);
+routes.use(commentsRouter);
+routes.use(cheerRouter);
 

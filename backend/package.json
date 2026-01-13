@@ -5,19 +5,16 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-  "dev": "NODE_ENV=development tsx watch src/server.ts",
-  "start": "NODE_ENV=production node dist/server.js",
-  "build": "tsc",
-
-  "prisma:generate": "prisma generate",
-  "prisma:studio": "prisma studio",
-
-  "db:migrate:dev": "NODE_ENV=development prisma migrate dev",
-  "db:migrate:reset": "NODE_ENV=development prisma migrate reset --force",
-  "db:migrate:prod": "NODE_ENV=production prisma migrate deploy",
-
-  "db:seed": "tsx prisma/seed.ts"
-},
+    "dev": "NODE_ENV=development tsx watch src/server.ts",
+    "start": "NODE_ENV=production node dist/server.js",
+    "build": "tsc",
+    "prisma:generate": "prisma generate",
+    "prisma:studio": "prisma studio",
+    "db:migrate:dev": "NODE_ENV=development prisma migrate dev",
+    "db:migrate:reset": "NODE_ENV=development prisma migrate reset --force",
+    "db:migrate:prod": "NODE_ENV=production prisma migrate deploy",
+    "db:seed": "tsx prisma/seed.ts"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
@@ -33,7 +30,7 @@
     "mariadb": "^3.4.5",
     "morgan": "^1.10.1",
     "multer": "^2.0.2",
-    "prisma": "^7.2.0",
+    "prisma": "^6.19.2",
     "swagger-ui-express": "^5.0.1",
     "yaml": "^2.8.2",
     "yamljs": "^0.3.0",

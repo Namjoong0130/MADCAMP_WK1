@@ -3,7 +3,7 @@ import { Router } from "express";
 import { asyncHandler } from "../../utils/asyncHandler.js";
 import { prisma } from "../../db/prisma.js";
 import { parseCursor, parseLimit } from "../../utils/pagination.js";
-import { requireAuth } from "../../middlewares/auth.js";
+import { requireAuth, optionalAuth } from "../../middlewares/auth.js";
 import { HttpError } from "../../utils/httpError.js";
 import { z } from "zod";
 
@@ -18,50 +18,28 @@ const PostCreateSchema = z.object({
 });
 const PostUpdateSchema = PostCreateSchema.partial();
 
-// ✅ PostMedia[] -> Media[]로 평탄화
-function flattenMedias(post: any) {
+// PostMedia[] -> Media[]로 평탄화 + likedByMe 계산까지 한 번에 처리
+function mapPostForResponse(post: any, userId?: string) {
+  const medias = Array.isArray(post.medias)
+    ? post.medias.map((pm: any) => pm?.media).filter(Boolean)
+    : [];
+
+  // ✅ 조회 쿼리에서 postLikes를 userId 기준으로 1개만 가져오면,
+  // post.postLikes.length>0 으로 likedByMe 계산 가능
+  const likedByMe =
+    userId && Array.isArray(post.postLikes) ? post.postLikes.length > 0 : null;
+
   return {
     ...post,
-    medias: (post.medias ?? []).map((pm: any) => pm.media).filter(Boolean),
+    medias,
+    likedByMe,
   };
 }
 
-
-
-// posts.router.ts 상단 import 근처에 prisma가 이미 있으니 그대로 사용
-
-async function resolveTagIds(tagInputs: string[]) {
-  if (!tagInputs?.length) return [];
-
-  const resolved: string[] = [];
-
-  for (const t of tagInputs) {
-    if (!t?.trim()) continue;
-
-    // 1) "id"로 들어온 경우인지 먼저 확인
-    const byId = await prisma.tag.findUnique({ where: { id: t } });
-    if (byId) {
-      resolved.push(byId.id);
-      continue;
-    }
-
-    // 2) 아니면 "name"으로 보고 upsert
-    const byName = await prisma.tag.upsert({
-      where: { name: t },
-      update: {},
-      create: { name: t },
-      select: { id: true },
-    });
-    resolved.push(byName.id);
-  }
-
-  // 중복 제거
-  return Array.from(new Set(resolved));
-}
-
-// GET /get
+// GET /posts
 postsRouter.get(
   "/",
+  optionalAuth,
   asyncHandler(async (req, res) => {
     const limit = parseLimit(req.query.limit);
     const cursor = parseCursor(req.query.cursor);
@@ -71,42 +49,71 @@ postsRouter.get(
       ...(tag ? { tags: { some: { tag: { name: tag } } } } : {}),
     };
 
+    const userId = req.user?.id;
+
     const rows = await prisma.post.findMany({
       take: limit + 1,
       ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
       where,
       orderBy: { createdAt: "desc" },
-      include: {
-        author: { select: { id: true, nickname: true, schoolId: true, profileImageUrl: true } },
-        tags: { include: { tag: { select: { id: true, name: true } } } },
-
-        // ✅ 목록은 대표 1장만
+      select: {
+        id: true,
+        authorId: true,
+        title: true,
+        content: true,
+        visibility: true,
+        likeCount: true,
+        commentCount: true,
+        createdAt: true,
+        updatedAt: true,
+        deletedAt: true,
+        author: {
+          select: { id: true, nickname: true, schoolId: true, profileImageUrl: true },
+        },
+        tags: {
+          include: { tag: { select: { id: true, name: true } } },
+        },
+        // 목록에는 대표 1장만 내려줌
         medias: {
           take: 1,
           include: {
-            media: { select: { id: true, url: true, mimeType: true, size: true, width: true, height: true } },
+            media: {
+              select: { id: true, url: true, mimeType: true, size: true, width: true, height: true },
+            },
           },
         },
+        // ✅ likedByMe 계산용 (로그인 했을 때만 의미 있음)
+        likes: userId
+          ? {
+              where: { userId },
+              take: 1,
+              select: { userId: true },
+            }
+          : false,
       },
     });
 
+    // SCHOOL_ONLY는 로그인 없이 보이면 안 되므로 제거 (현재 정책 유지)
     const filtered = rows.filter((p) => p.visibility !== "SCHOOL_ONLY");
+
     const hasNext = filtered.length > limit;
     const items = hasNext ? filtered.slice(0, limit) : filtered;
     const nextCursor = hasNext ? items[items.length - 1]?.id ?? null : null;
 
-    // ✅ medias 평탄화
-    const mapped = items.map((p) => ({
-      ...p,
-      medias: (p.medias ?? []).map((pm: any) => pm.media).filter(Boolean),
-      contentPreview: p.content.length > 80 ? p.content.slice(0, 80) : p.content,
-    }));
+    const mapped = items.map((p) => {
+      const base = mapPostForResponse(p, userId);
+      return {
+        ...base,
+        medias: (p.medias ?? []).map((pm: any) => pm.media).filter(Boolean),
+        contentPreview: p.content.length > 80 ? p.content.slice(0, 80) : p.content,
+      };
+    });
 
     res.json({ items: mapped, nextCursor });
   })
 );
 
-
+// POST /posts
 postsRouter.post(
   "/",
   requireAuth,
@@ -123,15 +130,15 @@ postsRouter.post(
           ? { tags: { create: body.tagIds.map((tagId) => ({ tagId })) } }
           : {}),
         ...(body.mediaIds?.length
-           ? { medias: { create: body.mediaIds.map((mediaId, i) => ({ mediaId, sortOrder: i })) } }
+          ? { medias: { create: body.mediaIds.map((mediaId) => ({ mediaId })) } }
           : {}),
       },
       include: {
-        author: { select: { id: true, nickname: true, schoolId: true, profileImageUrl: true } },
+        author: {
+          select: { id: true, nickname: true, schoolId: true, profileImageUrl: true },
+        },
         tags: { include: { tag: { select: { id: true, name: true } } } },
         medias: {
-          take: 1,
-          orderBy: { sortOrder: "asc" },
           include: {
             media: { select: { id: true, url: true, mimeType: true, size: true, width: true, height: true } },
           },
@@ -139,18 +146,20 @@ postsRouter.post(
       },
     });
 
-    res.status(201).json(flattenMedias(created));
+    // 작성 직후는 내 글이고, 좋아요는 기본 false
+    res.status(201).json({ ...mapPostForResponse(created, req.user!.id), likedByMe: false });
   })
 );
-
-
 
 // GET /posts/:id
 postsRouter.get(
   "/:id",
+  optionalAuth,
   asyncHandler(async (req, res) => {
     const id = req.params.id;
     if (typeof id !== "string") throw new HttpError(400, "Invalid id", "INVALID_ID");
+
+    const userId = req.user?.id;
 
     const post = await prisma.post.findUnique({
       where: { id },
@@ -158,23 +167,34 @@ postsRouter.get(
         author: { select: { id: true, nickname: true, schoolId: true, profileImageUrl: true } },
         tags: { include: { tag: { select: { id: true, name: true } } } },
         medias: {
-          orderBy: { sortOrder: "asc" },
           include: {
             media: { select: { id: true, url: true, mimeType: true, size: true, width: true, height: true } },
           },
         },
+        // ✅ likes 계산용
+        ...(userId
+          ? {
+              postLikes: {
+                where: { userId },
+                take: 1,
+                select: { userId: true },
+              },
+            }
+          : {}),
       },
     });
 
     if (!post) throw new HttpError(404, "리소스를 찾을 수 없습니다.", "NOT_FOUND");
-    if (post.visibility === "SCHOOL_ONLY") throw new HttpError(403, "권한이 없습니다.", "FORBIDDEN");
 
-    res.json(flattenMedias(post));
+    if (post.visibility === "SCHOOL_ONLY") {
+      throw new HttpError(403, "권한이 없습니다.", "FORBIDDEN");
+    }
+
+    res.json(mapPostForResponse(post, userId));
   })
 );
 
-
-// PATCH /posts/:id (작성자 or ADMIN)
+// PATCH /posts/:id
 postsRouter.patch(
   "/:id",
   requireAuth,
@@ -189,20 +209,15 @@ postsRouter.patch(
       throw new HttpError(403, "권한이 없습니다.", "FORBIDDEN");
     }
 
-    // ✅ tagIds 변환
-    const realTagIds = body.tagIds !== undefined ? await resolveTagIds(body.tagIds) : undefined;
-
     const updated = await prisma.post.update({
       where: { id },
       data: {
         ...(body.title !== undefined ? { title: body.title } : {}),
         ...(body.content !== undefined ? { content: body.content } : {}),
         ...(body.visibility !== undefined ? { visibility: body.visibility } : {}),
-
-        ...(realTagIds !== undefined
-          ? { tags: { deleteMany: {}, create: realTagIds.map((tagId) => ({ tagId })) } }
+        ...(body.tagIds !== undefined
+          ? { tags: { deleteMany: {}, create: body.tagIds.map((tagId) => ({ tagId })) } }
           : {}),
-
         ...(body.mediaIds !== undefined
           ? { medias: { deleteMany: {}, create: body.mediaIds.map((mediaId) => ({ mediaId })) } }
           : {}),
@@ -210,14 +225,17 @@ postsRouter.patch(
       include: {
         author: { select: { id: true, nickname: true, schoolId: true, profileImageUrl: true } },
         tags: { include: { tag: { select: { id: true, name: true } } } },
-        medias: { include: { media: { select: { id: true, url: true, mimeType: true, size: true, width: true, height: true } } } },
+        medias: {
+          include: {
+            media: { select: { id: true, url: true, mimeType: true, size: true, width: true, height: true } },
+          },
+        },
       },
     });
 
-    res.json(flattenMedias(updated));
+    res.json({ ...mapPostForResponse(updated, req.user!.id), likedByMe: null });
   })
 );
-
 
 // DELETE /posts/:id
 postsRouter.delete(
@@ -238,4 +256,40 @@ postsRouter.delete(
   })
 );
 
+// ✅ POST /posts/:id/like (좋아요 토글: 동시성 안전 + likeCount 실데이터 동기화)
+postsRouter.post(
+  "/:id/like",
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const postId = req.params.id;
+    if (typeof postId !== "string") throw new HttpError(400, "Invalid id", "INVALID_ID");
 
+    const userId = req.user!.id;
+
+    const result = await prisma.$transaction(async (tx) => {
+      const post = await tx.post.findUnique({ where: { id: postId }, select: { id: true } });
+      if (!post) throw new HttpError(404, "리소스를 찾을 수 없습니다.", "NOT_FOUND");
+
+      const existed = await tx.postLike.findUnique({
+        where: { userId_postId: { userId, postId } },
+        select: { userId: true },
+      });
+
+      let liked: boolean;
+      if (existed) {
+        await tx.postLike.delete({ where: { userId_postId: { userId, postId } } });
+        liked = false;
+      } else {
+        await tx.postLike.create({ data: { userId, postId } });
+        liked = true;
+      }
+
+      const likeCount = await tx.postLike.count({ where: { postId } });
+      await tx.post.update({ where: { id: postId }, data: { likeCount } });
+
+      return { liked, likeCount };
+    });
+
+    res.json(result);
+  })
+);
