@@ -206,7 +206,7 @@ model InfoTag {
 model Media {
   id         String      @id @default(cuid())
   uploaderId String?
-  url        String
+  url        String   @db.LongText
   mimeType   String?
   size       Int?
   width      Int?
@@ -269,6 +269,68 @@ model ShareLink {
 
   @@index([entityType, entityId])
   @@index([createdById])
+}
+
+
+// ===========================
+// Cheer(응원전) Feature
+// ===========================
+
+model CheerTeam {
+  id        String      @id @default(cuid())
+  name      String      @unique              // 예: "KAIST", "POSTECH"
+  logoUrl   String?     @db.LongText         // 로고도 base64/URL 모두 가능하게
+  createdAt DateTime    @default(now())
+  deletedAt DateTime?
+
+  // 관계
+  homeMatches CheerMatch[] @relation("HomeTeam")
+  awayMatches CheerMatch[] @relation("AwayTeam")
+  taps        CheerTap[]
+}
+
+model CheerMatch {
+  id        String   @id @default(cuid())
+  title     String                 // 예: "카포전 응원전 2026"
+  isActive  Boolean  @default(true)
+  startsAt  DateTime?
+  endsAt    DateTime?
+  createdAt DateTime @default(now())
+  deletedAt DateTime?
+
+  // 두 팀(상대팀 경쟁 구조)
+  homeTeamId String
+  awayTeamId String
+  homeTeam   CheerTeam @relation("HomeTeam", fields: [homeTeamId], references: [id])
+  awayTeam   CheerTeam @relation("AwayTeam", fields: [awayTeamId], references: [id])
+
+  taps      CheerTap[]
+
+  @@index([isActive])
+  @@index([homeTeamId])
+  @@index([awayTeamId])
+}
+
+// 유저가 버튼을 누를 때마다 count를 증가시키는 구조 (권장)
+// - row를 무한히 만들지 않음
+// - “유저별 기여도”도 추적 가능
+model CheerTap {
+  id        String   @id @default(cuid())
+  matchId   String
+  teamId    String
+  userId    String
+  count     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  match     CheerMatch @relation(fields: [matchId], references: [id])
+  team      CheerTeam  @relation(fields: [teamId], references: [id])
+  user      User       @relation(fields: [userId], references: [id])
+
+  // 한 유저는 한 매치에서 한 팀에 대해 1개의 row만 유지하고 count만 증가
+  @@unique([matchId, teamId, userId])
+  @@index([matchId, teamId])
+  @@index([userId])
 }
 
 enum UserRole {
