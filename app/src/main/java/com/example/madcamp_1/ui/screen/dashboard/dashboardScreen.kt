@@ -6,8 +6,13 @@ import androidx.compose.foundation.lazy.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.*
 import androidx.compose.ui.draw.clip
@@ -17,14 +22,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
-import com.example.madcamp_1.ui.theme.UnivsFontFamily
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
-import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import com.example.madcamp_1.data.utils.AuthManager
+import com.example.madcamp_1.ui.theme.UnivsFontFamily
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,7 +35,8 @@ fun DashboardScreen(
     onSearchChange: (String) -> Unit,
     onTagSelect: (String) -> Unit,
     onNavigateToWrite: () -> Unit,
-    onPostClick: (Int) -> Unit,
+    // ✅ Int -> String
+    onPostClick: (String) -> Unit,
     onRefresh: () -> Unit
 ) {
     val schoolId = AuthManager.getSchoolId()
@@ -58,7 +58,6 @@ fun DashboardScreen(
         },
         containerColor = Color(0xFFF8F9FA)
     ) { padding ->
-        // [수정] PullToRefreshBox 내부에 Column이 온전하게 들어가도록 구조를 정렬했습니다.
         PullToRefreshBox(
             isRefreshing = isLoading,
             onRefresh = onRefresh,
@@ -81,8 +80,9 @@ fun DashboardScreen(
                     .fillMaxSize()
                     .padding(horizontal = 16.dp)
             ) {
-                // [1] 검색바
                 Spacer(modifier = Modifier.height(16.dp))
+
+                // 검색바
                 OutlinedTextField(
                     value = searchText,
                     onValueChange = onSearchChange,
@@ -98,7 +98,7 @@ fun DashboardScreen(
                     )
                 )
 
-                // [2] 태그 바
+                // 태그 바
                 Spacer(modifier = Modifier.height(16.dp))
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     items(tags) { tag ->
@@ -131,11 +131,8 @@ fun DashboardScreen(
                     }
                 }
 
-                // [3] 게시글 리스트
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // 데이터가 비어있을 때만 중앙 로딩바를 보여주고,
-                // 이미 데이터가 있다면 PullToRefresh의 상단 인디케이터만 사용하도록 개선했습니다.
                 if (isLoading && posts.isEmpty()) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator(color = brandColor)
@@ -150,7 +147,7 @@ fun DashboardScreen(
                             PostItem(
                                 post = post,
                                 brandColor = brandColor,
-                                onClick = { onPostClick(post.id) }
+                                onClick = { onPostClick(post.id) } // ✅ String id 전달
                             )
                         }
                     }
@@ -160,7 +157,6 @@ fun DashboardScreen(
     }
 }
 
-// [중요] PostItem은 DashboardScreen 함수 중괄호 바깥에 위치해야 합니다.
 @Composable
 fun PostItem(post: Post, brandColor: Color, onClick: () -> Unit) {
     Card(
@@ -172,7 +168,9 @@ fun PostItem(post: Post, brandColor: Color, onClick: () -> Unit) {
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Row(
-            modifier = Modifier.padding(16.dp).fillMaxWidth(),
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
@@ -189,24 +187,66 @@ fun PostItem(post: Post, brandColor: Color, onClick: () -> Unit) {
                         fontWeight = FontWeight.Bold
                     )
                 }
+
                 Spacer(modifier = Modifier.height(8.dp))
-                Text(text = post.title, fontFamily = UnivsFontFamily, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, maxLines = 1)
-                Text(text = post.content, fontFamily = UnivsFontFamily, fontSize = 13.sp, color = Color.Gray, maxLines = 2, modifier = Modifier.padding(top = 4.dp))
+
+                Text(
+                    text = post.title,
+                    fontFamily = UnivsFontFamily,
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 16.sp,
+                    maxLines = 1
+                )
+
+                Text(
+                    text = post.content,
+                    fontFamily = UnivsFontFamily,
+                    fontSize = 13.sp,
+                    color = Color.Gray,
+                    maxLines = 2,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+
                 Spacer(modifier = Modifier.height(12.dp))
+
+                // ✅ 작성자/시간 하드코딩 제거
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(text = "방금 전 · 익명", fontFamily = UnivsFontFamily, fontSize = 11.sp, color = Color(0xFFBDBDBD))
+                    Text(
+                        text = "${formatPostTime(post.timestamp)} · ${post.author}",
+                        fontFamily = UnivsFontFamily,
+                        fontSize = 11.sp,
+                        color = Color(0xFFBDBDBD)
+                    )
+
                     Spacer(modifier = Modifier.width(12.dp))
-                    Icon(imageVector = Icons.Default.Favorite, contentDescription = null, tint = Color(0xFFEF5350), modifier = Modifier.size(14.dp))
+
+                    Icon(
+                        imageVector = Icons.Default.Favorite,
+                        contentDescription = null,
+                        tint = Color(0xFFEF5350),
+                        modifier = Modifier.size(14.dp)
+                    )
+
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text(text = post.likes.toString(), fontFamily = UnivsFontFamily, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF424242))
+
+                    Text(
+                        text = post.likes.toString(),
+                        fontFamily = UnivsFontFamily,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF424242)
+                    )
                 }
             }
-            if (post.imageUri != null) {
+
+            if (!post.imageUri.isNullOrBlank()) {
                 Spacer(modifier = Modifier.width(12.dp))
                 AsyncImage(
                     model = post.imageUri,
                     contentDescription = null,
-                    modifier = Modifier.size(75.dp).clip(RoundedCornerShape(12.dp)),
+                    modifier = Modifier
+                        .size(75.dp)
+                        .clip(RoundedCornerShape(12.dp)),
                     contentScale = ContentScale.Crop
                 )
             }
