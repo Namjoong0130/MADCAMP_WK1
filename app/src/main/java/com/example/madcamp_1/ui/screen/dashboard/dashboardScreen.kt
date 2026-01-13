@@ -189,8 +189,10 @@ fun DashboardScreen(
                             PostItem(
                                 post = post,
                                 mySchoolId = mySchoolId,
+                                myBrandColor = myBrandColor,
                                 onClick = { onPostClick(post.id) }
                             )
+
                         }
                     }
                 }
@@ -203,12 +205,17 @@ fun DashboardScreen(
 private fun PostItem(
     post: Post,
     mySchoolId: String,
+    myBrandColor: Color,
     onClick: () -> Unit
 ) {
     val tagColor = UiMappings.tagColor(post.category)
+
     val authorSchoolId = post.authorSchoolId
     val authorSchoolColor = UiMappings.schoolColor(authorSchoolId)
     val isSameSchool = !authorSchoolId.isNullOrBlank() && authorSchoolId.equals(mySchoolId, ignoreCase = true)
+
+    // ✅ 하트는 무조건 빨간 "채워진" 형태
+    val heartColor = Color(0xFFE53935)
 
     Card(
         modifier = Modifier
@@ -216,6 +223,8 @@ private fun PostItem(
             .clickable { onClick() },
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
+        // ✅ 내 학교 brandcolor로 아이템 톤 통일(살짝만)
+        border = androidx.compose.foundation.BorderStroke(1.dp, myBrandColor.copy(alpha = 0.14f)),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Row(
@@ -226,18 +235,18 @@ private fun PostItem(
         ) {
             Column(modifier = Modifier.weight(1f)) {
 
-                // ✅ 태그 칩(태그별 색 고정)
+                // ✅ 글 태그: 상단 태그가 "선택되었을 때" 스타일(배경 진하게 + 텍스트 흰색)
                 Surface(
-                    color = tagColor.copy(alpha = 0.10f),
+                    color = tagColor,
                     shape = RoundedCornerShape(10.dp)
                 ) {
                     Text(
                         text = post.category,
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                        color = tagColor,
+                        color = Color.White,
                         fontSize = 11.sp,
                         fontFamily = UnivsFontFamily,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.ExtraBold
                     )
                 }
 
@@ -248,7 +257,8 @@ private fun PostItem(
                     fontFamily = UnivsFontFamily,
                     fontWeight = FontWeight.ExtraBold,
                     fontSize = 16.sp,
-                    maxLines = 1
+                    maxLines = 1,
+                    color = Color(0xFF111111)
                 )
 
                 Text(
@@ -262,78 +272,86 @@ private fun PostItem(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // ✅ 하단 메타(시간 · 작성자 + 학교뱃지 · 좋아요/댓글)
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = UiMappings.formatDashboardTime(post.timestamp),
-                        fontFamily = UnivsFontFamily,
-                        fontSize = 11.sp,
-                        color = Color(0xFFBDBDBD)
-                    )
+                // ✅ 하단 메타: 좌측 정보 + 우측(고정 폭) 하트/댓글
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
 
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("·", fontFamily = UnivsFontFamily, fontSize = 11.sp, color = Color(0xFFBDBDBD))
-                    Spacer(modifier = Modifier.width(8.dp))
-
-                    Text(
-                        text = post.author,
-                        fontFamily = UnivsFontFamily,
-                        fontSize = 11.sp,
-                        color = Color(0xFF757575),
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    // ✅ 작성자 학교 인증 뱃지(이름 옆)
-                    if (!authorSchoolId.isNullOrBlank()) {
-                        Spacer(modifier = Modifier.width(6.dp))
-                        SchoolBadge(
-                            label = UiMappings.schoolLabel(authorSchoolId),
-                            color = authorSchoolColor,
-                            emphasize = isSameSchool
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.weight(1f))
-
-                    // ✅ 좋아요 UI: 작성자 학교색 기반(요구사항 반영)
+                    // ----- LEFT GROUP (시간 · 작성자 · 뱃지) -----
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .background(authorSchoolColor.copy(alpha = 0.10f), RoundedCornerShape(999.dp))
-                            .padding(horizontal = 10.dp, vertical = 5.dp)
+                        modifier = Modifier.weight(1f)
                     ) {
-                        Icon(
-                            imageVector = if (post.likedByMe) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                            contentDescription = null,
-                            tint = authorSchoolColor,
-                            modifier = Modifier.size(14.dp)
+                        Text(
+                            text = UiMappings.formatDashboardTime(post.timestamp),
+                            fontFamily = UnivsFontFamily,
+                            fontSize = 11.sp,
+                            color = Color(0xFFBDBDBD)
                         )
-                        Spacer(modifier = Modifier.width(5.dp))
+
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("·", fontFamily = UnivsFontFamily, fontSize = 11.sp, color = Color(0xFFBDBDBD))
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        Text(
+                            text = post.author,
+                            fontFamily = UnivsFontFamily,
+                            fontSize = 11.sp,
+                            color = Color(0xFF757575),
+                            fontWeight = FontWeight.Bold
+                        )
+
+                        // ✅ 작성자 학교 뱃지: 닉네임 "오른쪽" 유지
+                        if (!authorSchoolId.isNullOrBlank()) {
+                            Spacer(modifier = Modifier.width(6.dp))
+                            SchoolBadge(
+                                label = UiMappings.schoolLabel(authorSchoolId),
+                                color = authorSchoolColor,
+                                emphasize = isSameSchool
+                            )
+                        }
+                    }
+
+                    // ----- RIGHT GROUP (하트/댓글: 항상 같은 위치) -----
+                    Row(
+                        modifier = Modifier.width(88.dp), // ✅ 고정 폭 -> 모든 row에서 동일한 위치/정렬
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        // 하트(작게)
+                        Icon(
+                            imageVector = Icons.Default.Favorite,
+                            contentDescription = null,
+                            tint = heartColor,
+                            modifier = Modifier.size(12.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             text = post.likes.toString(),
                             fontFamily = UnivsFontFamily,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = authorSchoolColor
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF424242)
+                        )
+
+                        Spacer(modifier = Modifier.width(10.dp))
+
+                        Icon(
+                            imageVector = Icons.Outlined.ChatBubbleOutline,
+                            contentDescription = null,
+                            tint = Color(0xFF9E9E9E),
+                            modifier = Modifier.size(12.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = post.commentCount.toString(),
+                            fontFamily = UnivsFontFamily,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF424242)
                         )
                     }
-
-                    Spacer(modifier = Modifier.width(10.dp))
-
-                    Icon(
-                        imageVector = Icons.Outlined.ChatBubbleOutline,
-                        contentDescription = null,
-                        tint = Color(0xFF9E9E9E),
-                        modifier = Modifier.size(14.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = post.commentCount.toString(),
-                        fontFamily = UnivsFontFamily,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF424242)
-                    )
                 }
             }
 
@@ -368,6 +386,7 @@ private fun PostItem(
         }
     }
 }
+
 
 @Composable
 private fun SchoolBadge(
