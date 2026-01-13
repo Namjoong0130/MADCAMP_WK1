@@ -32,4 +32,12 @@ interface PostApiService {
     suspend fun getPostDetail(
         @Path("id") id: String
     ): PostResponse
+
+    // [응원전] 현재 활성화된 매치 및 점수 가져오기
+    @GET("cheer-matches/active")
+    suspend fun getActiveMatch(): CheerMatchResponse
+
+    // [응원전] 터치 점수 전송 (CheerTap 카운트 증가)
+    @POST("cheer-taps")
+    suspend fun postCheerTaps(@Body request: CheerTapRequest): Any
 }

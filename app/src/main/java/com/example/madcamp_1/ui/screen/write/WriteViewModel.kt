@@ -17,20 +17,23 @@ import java.io.ByteArrayOutputStream
 class WriteViewModel : ViewModel() {
     var title by mutableStateOf("")
     var content by mutableStateOf("")
-    var selectedTag by mutableStateOf("소통")
+    var selectedTag by mutableStateOf("공지") // 초기값 설정
     var selectedImageUri by mutableStateOf<Uri?>(null)
+    var isAnonymous by mutableStateOf(true)
     var isUploading by mutableStateOf(false)
 
     fun onTitleChange(newText: String) { title = newText }
-    fun onContentChange(newText: String) { content = newText }
+    fun onContentChange(newText: String) {
+        if (newText.length <= 180) content = newText
+    }
     fun onTagSelect(tag: String) { selectedTag = tag }
     fun onImageSelected(uri: Uri?) { selectedImageUri = uri }
+    fun toggleAnonymous(value: Boolean) { isAnonymous = value }
 
     fun clearFields() {
-        title = ""; content = ""; selectedTag = "소통"; selectedImageUri = null
+        title = ""; content = ""; selectedTag = "공지"; selectedImageUri = null; isAnonymous = true
     }
 
-    // [서버 전송 핵심 함수]
     fun uploadPostToServer(context: Context, onSuccess: () -> Unit) {
         viewModelScope.launch {
             isUploading = true
@@ -38,7 +41,6 @@ class WriteViewModel : ViewModel() {
                 val base64Image = getBase64Image(context)
                 val mediaIds = mutableListOf<String>()
 
-                // 1. 이미지가 있다면 먼저 Media API에 등록하고 ID를 받아옴
                 if (base64Image != null) {
                     val mediaResponse = RetrofitClient.apiService.uploadMedia(
                         MediaCreateRequest(url = base64Image)
@@ -46,13 +48,14 @@ class WriteViewModel : ViewModel() {
                     mediaIds.add(mediaResponse.id)
                 }
 
-                // 2. 게시글 작성 API 호출 (받아온 Media ID 포함)
+                // ✅ nickname 필드 전송 중단 (서버 에러 원인)
                 RetrofitClient.apiService.createPost(
                     PostCreateRequest(
                         title = title,
                         content = content,
+                        visibility = "PUBLIC", // 서버가 허용하는 "PUBLIC" 고정
+                        tagIds = listOf(selectedTag), // 서버가 "공지" 등 이름을 ID로 쓴다고 가정
                         mediaIds = mediaIds
-                        // tagIds는 서버의 Tag 테이블 ID와 매칭 필요 (현재는 생략)
                     )
                 )
                 clearFields()
@@ -65,7 +68,7 @@ class WriteViewModel : ViewModel() {
         }
     }
 
-    fun getBase64Image(context: Context): String? { // private 제거!
+    fun getBase64Image(context: Context): String? {
         val uri = selectedImageUri ?: return null
         return try {
             val inputStream = context.contentResolver.openInputStream(uri)
