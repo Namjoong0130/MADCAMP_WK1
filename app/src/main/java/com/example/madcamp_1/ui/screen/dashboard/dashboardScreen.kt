@@ -31,6 +31,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
@@ -38,6 +39,9 @@ import com.example.madcamp_1.data.utils.AuthManager
 import com.example.madcamp_1.ui.theme.UnivsFontFamily
 import com.example.madcamp_1.ui.util.UiMappings
 import com.example.madcamp_1.ui.util.dataUrlToImageBitmapOrNull
+import androidx.compose.animation.animateColorAsState // animateColorAsState를 위해 필요
+import androidx.compose.animation.core.tween        // tween을 위해 필요
+import androidx.compose.runtime.getValue
 
 data class TagUIConfig(
     val name: String,
@@ -123,16 +127,36 @@ fun DashboardScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // 태그 바
+                // ✅ 애니메이션이 적용된 태그 바
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     tagConfigs.forEach { config ->
                         val isSelected = selectedTag == config.name
-                        val contentColor = if (isSelected) Color.White else config.color
-                        val containerColor = if (isSelected) config.color else config.color.copy(alpha = 0.08f)
-                        val borderColor = config.color.copy(alpha = 0.6f)
+
+                        // 1. 배경색 애니메이션 (투명 -> 진한 색)
+                        val animatedContainerColor by animateColorAsState(
+                            targetValue = if (isSelected) config.color else config.color.copy(alpha = 0.08f),
+                            animationSpec = tween(durationMillis = 300),
+                            label = "containerColor"
+                        )
+
+                        // 2. 콘텐츠색 애니메이션 (진한 색 -> 흰색)
+                        val animatedContentColor by animateColorAsState(
+                            targetValue = if (isSelected) Color.White else config.color,
+                            animationSpec = tween(durationMillis = 300),
+                            label = "contentColor"
+                        )
+
+                        // 3. 테두리색 애니메이션 (투명도 조절)
+                        val animatedBorderColor by animateColorAsState(
+                            targetValue = if (isSelected) Color.Transparent else config.color.copy(alpha = 0.3f),
+                            animationSpec = tween(durationMillis = 300),
+                            label = "borderColor"
+                        )
 
                         FilterChip(
                             selected = isSelected,
@@ -143,7 +167,7 @@ fun DashboardScreen(
                                         imageVector = config.icon,
                                         contentDescription = null,
                                         modifier = Modifier.size(15.dp),
-                                        tint = contentColor
+                                        tint = animatedContentColor // 애니메이션 적용
                                     )
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Text(
@@ -151,21 +175,21 @@ fun DashboardScreen(
                                         fontFamily = UnivsFontFamily,
                                         fontSize = 13.sp,
                                         fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Bold,
-                                        color = contentColor
+                                        color = animatedContentColor // 애니메이션 적용
                                     )
                                 }
                             },
                             shape = RoundedCornerShape(13.dp),
                             colors = FilterChipDefaults.filterChipColors(
-                                containerColor = containerColor,
-                                labelColor = contentColor,
-                                selectedContainerColor = config.color,
-                                selectedLabelColor = Color.White
+                                containerColor = animatedContainerColor, // 애니메이션 적용
+                                labelColor = animatedContentColor,
+                                selectedContainerColor = animatedContainerColor,
+                                selectedLabelColor = animatedContentColor
                             ),
                             border = FilterChipDefaults.filterChipBorder(
                                 enabled = true,
                                 selected = isSelected,
-                                borderColor = borderColor,
+                                borderColor = animatedBorderColor, // 애니메이션 적용
                                 selectedBorderColor = Color.Transparent,
                                 borderWidth = 1.dp
                             )
@@ -189,8 +213,10 @@ fun DashboardScreen(
                             PostItem(
                                 post = post,
                                 mySchoolId = mySchoolId,
+                                myBrandColor = myBrandColor,
                                 onClick = { onPostClick(post.id) }
                             )
+
                         }
                     }
                 }
@@ -203,6 +229,7 @@ fun DashboardScreen(
 private fun PostItem(
     post: Post,
     mySchoolId: String,
+    myBrandColor: Color,
     onClick: () -> Unit
 ) {
     val tagColor = UiMappings.tagColor(post.category)
@@ -210,12 +237,16 @@ private fun PostItem(
     val authorSchoolColor = UiMappings.schoolColor(authorSchoolId)
     val isSameSchool = !authorSchoolId.isNullOrBlank() && authorSchoolId.equals(mySchoolId, ignoreCase = true)
 
+    // 하트 색상 고정
+    val heartColor = Color(0xFFE53935)
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClick() },
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
+        border = androidx.compose.foundation.BorderStroke(1.dp, myBrandColor.copy(alpha = 0.14f)),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Row(
@@ -225,19 +256,18 @@ private fun PostItem(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-
-                // ✅ 태그 칩(태그별 색 고정)
+                // ✅ 파스텔 톤으로 변경된 게시글 태그
                 Surface(
-                    color = tagColor.copy(alpha = 0.10f),
+                    color = tagColor.copy(alpha = 0.15f), // 연한 파스텔 배경
                     shape = RoundedCornerShape(10.dp)
                 ) {
                     Text(
                         text = post.category,
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                        color = tagColor,
+                        color = tagColor, // 글자는 원래의 진한 색상 유지 (가독성)
                         fontSize = 11.sp,
                         fontFamily = UnivsFontFamily,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.ExtraBold
                     )
                 }
 
@@ -248,7 +278,8 @@ private fun PostItem(
                     fontFamily = UnivsFontFamily,
                     fontWeight = FontWeight.ExtraBold,
                     fontSize = 16.sp,
-                    maxLines = 1
+                    maxLines = 1,
+                    color = Color(0xFF111111)
                 )
 
                 Text(
@@ -262,8 +293,52 @@ private fun PostItem(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // ✅ 하단 메타(시간 · 작성자 + 학교뱃지 · 좋아요/댓글)
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                // ✅ 하단 메타 정보 영역 수정
+                // ✅ 하단 메타 정보 영역: 간격 최적화 및 세로 바 구분선 적용
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // 1. 좋아요 (왼쪽 고정)
+                    Icon(
+                        imageVector = Icons.Default.Favorite,
+                        contentDescription = null,
+                        tint = heartColor,
+                        modifier = Modifier.size(12.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = post.likes.toString(),
+                        fontFamily = UnivsFontFamily,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF424242)
+                    )
+
+                    Spacer(modifier = Modifier.width(10.dp)) // 좋아요와 댓글 사이 간격 유지
+
+                    // 2. 댓글 (왼쪽 고정)
+                    Icon(
+                        imageVector = Icons.Outlined.ChatBubbleOutline,
+                        contentDescription = null,
+                        tint = Color(0xFF9E9E9E),
+                        modifier = Modifier.size(12.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = post.commentCount.toString(),
+                        fontFamily = UnivsFontFamily,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF424242)
+                    )
+
+                    // ✅ 구분선 및 정보 밀착 배치
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("|", fontSize = 9.sp, color = Color(0xFFE0E0E0)) // 연한 회색 세로 바
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    // 3. 시간
                     Text(
                         text = UiMappings.formatDashboardTime(post.timestamp),
                         fontFamily = UnivsFontFamily,
@@ -272,75 +347,32 @@ private fun PostItem(
                     )
 
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("·", fontFamily = UnivsFontFamily, fontSize = 11.sp, color = Color(0xFFBDBDBD))
+                    Text("|", fontSize = 9.sp, color = Color(0xFFE0E0E0)) // 연한 회색 세로 바
                     Spacer(modifier = Modifier.width(8.dp))
 
-                    Text(
-                        text = post.author,
-                        fontFamily = UnivsFontFamily,
-                        fontSize = 11.sp,
-                        color = Color(0xFF757575),
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    // ✅ 작성자 학교 인증 뱃지(이름 옆)
-                    if (!authorSchoolId.isNullOrBlank()) {
-                        Spacer(modifier = Modifier.width(6.dp))
-                        SchoolBadge(
-                            label = UiMappings.schoolLabel(authorSchoolId),
-                            color = authorSchoolColor,
-                            emphasize = isSameSchool
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.weight(1f))
-
-                    // ✅ 좋아요 UI: 작성자 학교색 기반(요구사항 반영)
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .background(authorSchoolColor.copy(alpha = 0.10f), RoundedCornerShape(999.dp))
-                            .padding(horizontal = 10.dp, vertical = 5.dp)
+                    // 4. 작성자 (학교 색상 배경 닉네임)
+                    val bgAlpha = if (isSameSchool) 0.18f else 0.10f
+                    Surface(
+                        color = authorSchoolColor.copy(alpha = bgAlpha),
+                        shape = RoundedCornerShape(6.dp)
                     ) {
-                        Icon(
-                            imageVector = if (post.likedByMe) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                            contentDescription = null,
-                            tint = authorSchoolColor,
-                            modifier = Modifier.size(14.dp)
-                        )
-                        Spacer(modifier = Modifier.width(5.dp))
                         Text(
-                            text = post.likes.toString(),
+                            text = post.author,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
                             fontFamily = UnivsFontFamily,
-                            fontSize = 12.sp,
+                            fontSize = 10.sp,
+                            color = authorSchoolColor,
                             fontWeight = FontWeight.ExtraBold,
-                            color = authorSchoolColor
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
-
-                    Spacer(modifier = Modifier.width(10.dp))
-
-                    Icon(
-                        imageVector = Icons.Outlined.ChatBubbleOutline,
-                        contentDescription = null,
-                        tint = Color(0xFF9E9E9E),
-                        modifier = Modifier.size(14.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = post.commentCount.toString(),
-                        fontFamily = UnivsFontFamily,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF424242)
-                    )
                 }
             }
 
-            // 썸네일
+            // 우측 썸네일 (썸네일이 있어도 좌측 메타 정보의 위치는 영향을 받지 않음)
             if (!post.imageUri.isNullOrBlank()) {
                 Spacer(modifier = Modifier.width(12.dp))
-
                 val decoded = remember(post.imageUri) {
                     post.imageUri?.let { dataUrlToImageBitmapOrNull(it) }
                 }
@@ -350,7 +382,7 @@ private fun PostItem(
                         bitmap = decoded,
                         contentDescription = null,
                         modifier = Modifier
-                            .size(75.dp)
+                            .size(90.dp)
                             .clip(RoundedCornerShape(12.dp)),
                         contentScale = ContentScale.Crop
                     )
@@ -359,7 +391,7 @@ private fun PostItem(
                         model = post.imageUri,
                         contentDescription = null,
                         modifier = Modifier
-                            .size(75.dp)
+                            .size(72.dp)
                             .clip(RoundedCornerShape(12.dp)),
                         contentScale = ContentScale.Crop
                     )
@@ -368,6 +400,7 @@ private fun PostItem(
         }
     }
 }
+
 
 @Composable
 private fun SchoolBadge(
