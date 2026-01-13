@@ -24,6 +24,12 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.madcamp_1.data.utils.AuthManager
 import com.example.madcamp_1.ui.theme.UnivsFontFamily
+import android.graphics.BitmapFactory
+import android.util.Base64
+import androidx.compose.foundation.Image
+import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -241,15 +247,42 @@ fun PostItem(post: Post, brandColor: Color, onClick: () -> Unit) {
 
             if (!post.imageUri.isNullOrBlank()) {
                 Spacer(modifier = Modifier.width(12.dp))
-                AsyncImage(
-                    model = post.imageUri,
-                    contentDescription = null,
-                    modifier = Modifier
-                        .size(75.dp)
-                        .clip(RoundedCornerShape(12.dp)),
-                    contentScale = ContentScale.Crop
-                )
+
+                val decoded = remember(post.imageUri) {
+                    post.imageUri?.let { dataUrlToImageBitmapOrNull(it) }
+                }
+
+                if (decoded != null) {
+                    Image(
+                        bitmap = decoded,
+                        contentDescription = null,
+                        modifier = Modifier
+                            .size(55.dp)
+                            .clip(RoundedCornerShape(12.dp)),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    AsyncImage(
+                        model = post.imageUri,
+                        contentDescription = null,
+                        modifier = Modifier
+                            .size(55.dp)
+                            .clip(RoundedCornerShape(12.dp)),
+                        contentScale = ContentScale.Crop
+                    )
+                }
             }
         }
+    }
+}
+fun dataUrlToImageBitmapOrNull(dataUrl: String): ImageBitmap? {
+    return try {
+        val base64Part = dataUrl.substringAfter("base64,", missingDelimiterValue = "")
+        if (base64Part.isBlank()) return null
+        val bytes = Base64.decode(base64Part, Base64.DEFAULT)
+        val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size) ?: return null
+        bitmap.asImageBitmap()
+    } catch (_: Exception) {
+        null
     }
 }

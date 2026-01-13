@@ -81,17 +81,36 @@ fun WriteScreen(
         )
 
         // [4] 하단 이미지 추가 바
-        Row(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(
-                onClick = { galleryLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
-                modifier = Modifier.size(48.dp).border(1.dp, Color.LightGray, RoundedCornerShape(8.dp))
-            ) { Icon(Icons.Default.CameraAlt, contentDescription = null, tint = Color.Gray) }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                IconButton(
+                    onClick = {
+                        galleryLauncher.launch(
+                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                        )
+                    },
+                    modifier = Modifier
+                        .size(70.dp)
+                        .border(1.dp, Color.LightGray, RoundedCornerShape(10.dp))
+                ) {
+                    Icon(Icons.Default.CameraAlt, contentDescription = null, tint = Color.Gray)
+                }
+            }
 
             if (viewModel.selectedImageUri != null) {
                 Spacer(modifier = Modifier.width(12.dp))
                 AsyncImage(
-                    model = viewModel.selectedImageUri, contentDescription = null,
-                    modifier = Modifier.size(48.dp).clip(RoundedCornerShape(8.dp)).border(0.5.dp, Color.LightGray, RoundedCornerShape(8.dp)),
+                    model = viewModel.selectedImageUri,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(55.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .border(0.5.dp, Color.LightGray, RoundedCornerShape(10.dp)),
                     contentScale = ContentScale.Crop
                 )
             }
