@@ -58,10 +58,10 @@ fun DashboardScreen(
     val brandColor = if (isPostech) Color(0xFFE0224E) else Color(0xFF005EB8)
 
     val tagConfigs = listOf(
+        TagUIConfig("공지", Icons.Outlined.Campaign, Color(0xFF9C27B0)),
         TagUIConfig("소통", Icons.Outlined.ChatBubbleOutline, Color(0xFF03A9F4)),
         TagUIConfig("꿀팁", Icons.Outlined.Lightbulb, Color(0xFFFFB300)),
-        TagUIConfig("Q&A", Icons.Outlined.HelpOutline, Color(0xFF4CAF50)),
-        TagUIConfig("공지", Icons.Outlined.Campaign, Color(0xFF9C27B0))
+        TagUIConfig("Q&A", Icons.Outlined.HelpOutline, Color(0xFF4CAF50))
     )
 
     val state = rememberPullToRefreshState()

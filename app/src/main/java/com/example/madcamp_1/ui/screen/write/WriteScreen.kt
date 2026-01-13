@@ -34,7 +34,7 @@ fun WriteScreen(
     onComplete: (String?, String, String, String) -> Unit // 이미지(Base64), 제목, 내용, 태그 전달
 ) {
     val context = LocalContext.current
-    val tags = listOf("소통", "꿀팁", "Q&A", "공지")
+    val tags = listOf("공지", "소통", "꿀팁", "Q&A")
     val galleryLauncher = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) {
         viewModel.onImageSelected(it)
     }
