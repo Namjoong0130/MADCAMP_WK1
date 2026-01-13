@@ -1,6 +1,9 @@
 package com.example.madcamp_1.ui.screen.dashboard
 
+import android.graphics.BitmapFactory
+import android.util.Base64
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -15,9 +18,12 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember // ✅ 필수 임포트
 import androidx.compose.ui.*
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap // ✅ 필수 임포트
+import androidx.compose.ui.graphics.asImageBitmap // ✅ 필수 임포트
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -26,14 +32,8 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.madcamp_1.data.utils.AuthManager
 import com.example.madcamp_1.ui.theme.UnivsFontFamily
-import android.graphics.BitmapFactory
-import android.util.Base64
-import androidx.compose.foundation.Image
-import androidx.compose.runtime.remember
-import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.asImageBitmap
 
-// [핵심] 이 정의가 있어야 에러가 나지 않습니다.
+// [1] 태그 디자인 데이터 모델
 data class TagUIConfig(
     val name: String,
     val icon: ImageVector,
@@ -50,16 +50,13 @@ fun DashboardScreen(
     onSearchChange: (String) -> Unit,
     onTagSelect: (String) -> Unit,
     onNavigateToWrite: () -> Unit,
-    // ✅ Int -> String
     onPostClick: (String) -> Unit,
     onRefresh: () -> Unit
 ) {
     val schoolId = AuthManager.getSchoolId()
     val isPostech = schoolId.contains("postech", ignoreCase = true)
-
     val brandColor = if (isPostech) Color(0xFFE0224E) else Color(0xFF005EB8)
 
-    // "전체"를 제외한 4가지 태그만 설정
     val tagConfigs = listOf(
         TagUIConfig("소통", Icons.Outlined.ChatBubbleOutline, Color(0xFF03A9F4)),
         TagUIConfig("꿀팁", Icons.Outlined.Lightbulb, Color(0xFFFFB300)),
@@ -104,7 +101,6 @@ fun DashboardScreen(
             ) {
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // 검색바
                 OutlinedTextField(
                     value = searchText,
                     onValueChange = onSearchChange,
@@ -120,13 +116,12 @@ fun DashboardScreen(
                     )
                 )
 
-                // 태그 바
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // [3] 태그 바 (가로로 길게 늘어지지 않게 수정)
+                // --- 쫀쫀한 디자인의 태그 바 ---
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp) // 태그 간격
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     tagConfigs.forEach { config ->
                         val isSelected = selectedTag == config.name
@@ -134,10 +129,8 @@ fun DashboardScreen(
                         val containerColor = if (isSelected) config.color else config.color.copy(alpha = 0.08f)
                         val borderColor = config.color.copy(alpha = 0.6f)
 
-                        // weight(1f)를 제거하여 글자 길이에 맞춤
                         FilterChip(
                             selected = isSelected,
-                            // 이미 선택된 상태에서 다시 누르면 빈 문자열("") 전달 (전체 보기)
                             onClick = { onTagSelect(if (isSelected) "" else config.name) },
                             label = {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -157,16 +150,17 @@ fun DashboardScreen(
                                     )
                                 }
                             },
-                            shape = RoundedCornerShape(12.dp),
+                            shape = RoundedCornerShape(13.dp),
                             colors = FilterChipDefaults.filterChipColors(
-                                containerColor = Color.White,
-                                selectedContainerColor = brandColor,
+                                containerColor = containerColor,
+                                labelColor = contentColor,
+                                selectedContainerColor = config.color,
                                 selectedLabelColor = Color.White
                             ),
                             border = FilterChipDefaults.filterChipBorder(
                                 enabled = true,
                                 selected = isSelected,
-                                borderColor = Color(0xFFEEEEEE),
+                                borderColor = borderColor,
                                 selectedBorderColor = Color.Transparent,
                                 borderWidth = 1.dp
                             )
@@ -190,7 +184,7 @@ fun DashboardScreen(
                             PostItem(
                                 post = post,
                                 brandColor = brandColor,
-                                onClick = { onPostClick(post.id) } // ✅ String id 전달
+                                onClick = { onPostClick(post.id) }
                             )
                         }
                     }
@@ -230,61 +224,23 @@ fun PostItem(post: Post, brandColor: Color, onClick: () -> Unit) {
                         fontWeight = FontWeight.Bold
                     )
                 }
-
                 Spacer(modifier = Modifier.height(8.dp))
-
-                Text(
-                    text = post.title,
-                    fontFamily = UnivsFontFamily,
-                    fontWeight = FontWeight.ExtraBold,
-                    fontSize = 16.sp,
-                    maxLines = 1
-                )
-
-                Text(
-                    text = post.content,
-                    fontFamily = UnivsFontFamily,
-                    fontSize = 13.sp,
-                    color = Color.Gray,
-                    maxLines = 2,
-                    modifier = Modifier.padding(top = 4.dp)
-                )
-
+                Text(text = post.title, fontFamily = UnivsFontFamily, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, maxLines = 1)
+                Text(text = post.content, fontFamily = UnivsFontFamily, fontSize = 13.sp, color = Color.Gray, maxLines = 2, modifier = Modifier.padding(top = 4.dp))
                 Spacer(modifier = Modifier.height(12.dp))
-
-                // ✅ 작성자/시간 하드코딩 제거
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = "${formatPostTime(post.timestamp)} · ${post.author}",
-                        fontFamily = UnivsFontFamily,
-                        fontSize = 11.sp,
-                        color = Color(0xFFBDBDBD)
-                    )
-
+                    Text(text = "${formatPostTime(post.timestamp)} · ${post.author}", fontFamily = UnivsFontFamily, fontSize = 11.sp, color = Color(0xFFBDBDBD))
                     Spacer(modifier = Modifier.width(12.dp))
-
-                    Icon(
-                        imageVector = Icons.Default.Favorite,
-                        contentDescription = null,
-                        tint = Color(0xFFEF5350),
-                        modifier = Modifier.size(14.dp)
-                    )
-
+                    Icon(imageVector = Icons.Default.Favorite, contentDescription = null, tint = Color(0xFFEF5350), modifier = Modifier.size(14.dp))
                     Spacer(modifier = Modifier.width(4.dp))
-
-                    Text(
-                        text = post.likes.toString(),
-                        fontFamily = UnivsFontFamily,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF424242)
-                    )
+                    Text(text = post.likes.toString(), fontFamily = UnivsFontFamily, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF424242))
                 }
             }
 
             if (!post.imageUri.isNullOrBlank()) {
                 Spacer(modifier = Modifier.width(12.dp))
 
+                // ✅ remember와 dataUrlToImageBitmapOrNull 에러 해결 부분
                 val decoded = remember(post.imageUri) {
                     post.imageUri?.let { dataUrlToImageBitmapOrNull(it) }
                 }
@@ -312,6 +268,8 @@ fun PostItem(post: Post, brandColor: Color, onClick: () -> Unit) {
         }
     }
 }
+
+// ✅ [중요] 누락되었던 이미지 디코딩 함수 추가
 fun dataUrlToImageBitmapOrNull(dataUrl: String): ImageBitmap? {
     return try {
         val base64Part = dataUrl.substringAfter("base64,", missingDelimiterValue = "")
