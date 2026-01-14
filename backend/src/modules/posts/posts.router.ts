@@ -90,13 +90,13 @@ postsRouter.get(
       },
     });
 
-    const filtered = rows.filter((p) => p.visibility !== "SCHOOL_ONLY");
+    const filtered = rows.filter((p: any) => p.visibility !== "SCHOOL_ONLY");
     const hasNext = filtered.length > limit;
     const items = hasNext ? filtered.slice(0, limit) : filtered;
     const nextCursor = hasNext ? items[items.length - 1]?.id ?? null : null;
 
     // ✅ medias 평탄화
-    const mapped = items.map((p) => ({
+    const mapped = items.map((p: any) => ({
       ...p,
       medias: (p.medias ?? []).map((pm: any) => pm.media).filter(Boolean),
       contentPreview: p.content.length > 80 ? p.content.slice(0, 80) : p.content,
