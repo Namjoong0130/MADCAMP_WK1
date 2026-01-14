@@ -35,6 +35,7 @@ import com.example.madcamp_1.ui.screen.schedule.ScheduleRoute
 import com.example.madcamp_1.ui.screen.write.WriteRoute
 import com.example.madcamp_1.ui.screen.battle.BattleRoute
 import com.example.madcamp_1.ui.theme.UnivsFontFamily
+import androidx.compose.material.icons.filled.SportsMma
 
 @Composable
 fun MainScreen() {
@@ -67,7 +68,7 @@ fun MainScreen() {
                         Triple("schedule", "스케줄", Icons.Default.DateRange),
                         Triple("dashboard", "게시판", Icons.Default.List),
                         Triple("select", "경기정보", Icons.Default.Info),
-                        Triple("battle", "배틀", Icons.Default.Fence) // ✅ 칼 느낌의 아이콘으로 변경
+                        Triple("battle", "결투", Icons.Default.SportsMma) // ✅ '배틀' -> '결투', 주먹 아이콘 적용
                     )
 
                     navItems.forEach { (route, label, icon) ->

@@ -40,7 +40,7 @@ class InfoViewModel : ViewModel() {
                 )
             }
             "해킹" -> {
-                _videoId.value = "9bZkp7q19f0"
+                _videoId.value = "ofKxo9XGYsQ"
                 _stadiumLocation.value = LatLng(36.3708, 127.3626)
                 _stadiumName.value = "정보전자공학동(E3)"
                 _historyRecords.value = listOf(

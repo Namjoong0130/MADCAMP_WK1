@@ -29,8 +29,8 @@ class ScheduleViewModel : ViewModel() {
     private val _selectedEvent = MutableStateFlow<ScheduleEvent?>(null)
     val selectedEvent = _selectedEvent.asStateFlow()
 
-    val postechScore = 7
-    val kaistScore = 0
+    val postechScore = 2
+    val kaistScore = 5
 
     // 파스텔 색상 정의
     private val pastelRed = Color(0xFFFFB3BA)
@@ -42,15 +42,15 @@ class ScheduleViewModel : ViewModel() {
 
     private val _events = MutableStateFlow(listOf(
         // categoryKey를 InfoViewModel의 when 조건인 한글 이름과 일치시킵니다.
-        ScheduleEvent("전야제", pastelGreen, 0, 18.0, 4.0, "축제의 시작!", "포스텍 대강당", "전야제"),
-        ScheduleEvent("개막식", pastelRed, 1, 10.0, 1.5, "공식 행사", "카이스트 운동장", "개막식"),
-        ScheduleEvent("E-sports", pastelOrange, 1, 12.0, 3.0, "LOL 결승전", "카이스트 대강당", "E-sports"),
-        ScheduleEvent("AI", pastelBlue, 1, 16.0, 2.0, "인공지능 배틀", "정보제어관", "인공지능"),
-        ScheduleEvent("축구", pastelPurple, 1, 19.0, 3.0, "메인 매치", "대운동장", "축구"),
-        ScheduleEvent("야구", pastelOrange, 2, 10.0, 3.0, "야구 정기전", "야구장", "야구"),
-        ScheduleEvent("과학퀴즈", pastelYellow, 2, 14.0, 2.0, "과학 상식 대결", "학술문화관", "과학퀴즈"),
-        ScheduleEvent("농구", pastelRed, 2, 17.0, 2.0, "농구 정기전", "스포츠컴플렉스", "농구"),
-        ScheduleEvent("폐막식", pastelBlue, 2, 20.0, 3.0, "축제 종료", "노천극장", "폐막식")
+        ScheduleEvent("전야제", pastelGreen, 0, 18.0, 4.0, "동아리들의 공연이 준비되어 있습니다!", "포스텍 대강당", "전야제"),
+        ScheduleEvent("개막식", pastelRed, 1, 10.0, 1.5, "양측 응원단의 응원전을 즐길 수 있습니다", "카이스트 운동장", "개막식"),
+        ScheduleEvent("E-sports", pastelOrange, 1, 12.0, 3.0, "리그 오브 레전드", "카이스트 대강당", "E-sports"),
+        ScheduleEvent("AI", pastelBlue, 1, 16.0, 2.0, "인공지능의 대결이 펼쳐집니다", "정보제어관", "인공지능"),
+        ScheduleEvent("축구", pastelPurple, 1, 19.0, 3.0, "비가 올 예정이니 우산을 챙겨주세요", "대운동장", "축구"),
+        ScheduleEvent("야구", pastelOrange, 2, 10.0, 3.0, "강수로 인해 연기될 수 있습니다", "야구장", "야구"),
+        ScheduleEvent("과학퀴즈", pastelYellow, 2, 14.0, 2.0, "치열한 과학 상식 대결!", "학술문화관", "과학퀴즈"),
+        ScheduleEvent("농구", pastelRed, 2, 17.0, 2.0, "이번 포카전의 마지막 경기입니다", "스포츠컴플렉스", "농구"),
+        ScheduleEvent("폐막식", pastelBlue, 2, 20.0, 3.0, "동아리들의 공연이 준비되어 있습니다", "노천극장", "폐막식")
     ))
     val events = _events.asStateFlow()
 

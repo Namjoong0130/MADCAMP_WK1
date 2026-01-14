@@ -1,13 +1,15 @@
 package com.example.madcamp_1.ui.screen.schedule
 
 import android.annotation.SuppressLint
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -41,31 +43,45 @@ fun ScheduleScreen(
     val endHour = 24
     val totalHours = endHour - startHour
 
-    val schoolColor = if (userSchoolDisplayName == "POSTECH") Color(0xFFC62828) else Color(0xFF004191)
+    // 🎨 학교별 테마 설정
+    val postechColor = Color(0xFFC62828)
+    val kaistColor = Color(0xFF004191)
+    val schoolColor = if (userSchoolDisplayName == "POSTECH") postechColor else kaistColor
     val themeBorderColor = if (userSchoolDisplayName == "POSTECH") Color(0xFFFFCDD2) else Color(0xFFBBDEFB)
     val themeHeaderColor = if (userSchoolDisplayName == "POSTECH") Color(0xFFFFF5F5) else Color(0xFFF0F7FF)
 
-    // [바텀 시트]
+    // ✅ 스코어보드 배경 바 애니메이션 로직
+    val totalScore = (pScore + kScore).coerceAtLeast(1)
+    val targetPWeight = if (pScore == 0 && kScore == 0) 0.5f else pScore.toFloat() / totalScore
+    val targetKWeight = if (pScore == 0 && kScore == 0) 0.5f else kScore.toFloat() / totalScore
+
+    val animatedPWeight by animateFloatAsState(
+        targetValue = targetPWeight,
+        animationSpec = tween(durationMillis = 800),
+        label = "pWeight"
+    )
+    val animatedKWeight by animateFloatAsState(
+        targetValue = targetKWeight,
+        animationSpec = tween(durationMillis = 800),
+        label = "kWeight"
+    )
+
+    // [바텀 시트 영역]
     if (selectedEvent != null) {
         ModalBottomSheet(
             onDismissRequest = onDismissSheet,
             containerColor = Color.White,
             shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
         ) {
-            // 전야제, 개막식, 폐막식인지 확인
             val isGeneralEvent = selectedEvent.categoryKey in listOf("전야제", "개막식", "폐막식")
-            // [수정 2] 버튼 유무에 따라 하단 패딩을 동적으로 조절
             val bottomPadding = if (!isGeneralEvent) 16.dp else 24.dp
 
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 24.dp)
-                    .padding(bottom = bottomPadding) // 고정값 40.dp 제거 후 동적 패딩 적용
+                    .padding(bottom = bottomPadding)
             ) {
-                // [수정 1] 기본 핸들과 겹치는 직접 그린 핸들바(Box) 삭제
-                // Box(modifier = Modifier...) 제거됨
-
                 Spacer(modifier = Modifier.height(24.dp))
                 Text(text = selectedEvent.name, fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, fontFamily = UnivsFontFamily, color = schoolColor)
                 Spacer(modifier = Modifier.height(16.dp))
@@ -74,7 +90,6 @@ fun ScheduleScreen(
                 InfoDetailItem(Icons.Default.LocationOn, "장소", selectedEvent.location)
                 InfoDetailItem(Icons.Default.Timer, "시간", formatTimeRange(selectedEvent.startHour, selectedEvent.duration))
 
-                // [수정 2] 버튼이 있을 때만 상단 간격과 버튼 표시
                 if (!isGeneralEvent) {
                     Spacer(modifier = Modifier.height(32.dp))
                     Button(
@@ -89,14 +104,19 @@ fun ScheduleScreen(
                         Text(text = "해당 경기 상세 정보 보기", fontSize = 16.sp, fontWeight = FontWeight.Bold, fontFamily = UnivsFontFamily)
                     }
                 }
-                // else 블록의 Spacer 제거됨 (동적 패딩으로 대체)
             }
         }
     }
 
-    // --- 메인 레이아웃 (변경 없음) ---
+    // [메인 레이아웃]
     Column(modifier = Modifier.fillMaxSize().background(Color(0xFFF8F9FA)).padding(16.dp)) {
-        Row(modifier = Modifier.fillMaxWidth().padding(bottom = 20.dp, top = 8.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(bottom = 20.dp, top = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // 왼쪽: 프로필
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Surface(modifier = Modifier.size(52.dp), shape = RoundedCornerShape(12.dp), color = Color.White, shadowElevation = 2.dp, border = BorderStroke(1.dp, Color(0xFFEEEEEE))) {
                     Image(painter = painterResource(id = userLogoRes), contentDescription = null, modifier = Modifier.padding(1.5.dp), contentScale = ContentScale.Fit)
@@ -107,13 +127,52 @@ fun ScheduleScreen(
                     Text(text = userSchoolDisplayName, fontFamily = UnivsFontFamily, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = schoolColor)
                 }
             }
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.background(Color.White, RoundedCornerShape(20.dp)).border(1.dp, Color(0xFFEEEEEE), RoundedCornerShape(20.dp)).padding(horizontal = 12.dp, vertical = 6.dp)) {
-                ScoreBadge("POSTECH ", pScore, Color(0xFFC62828))
-                Text(" : ", color = Color.LightGray, modifier = Modifier.padding(horizontal = 4.dp))
-                ScoreBadge("KAIST ", kScore, Color(0xFF004191))
+
+            // ✅ 수정된 스코어보드: POSTECH {score} : {score} KAIST
+            Box(
+                modifier = Modifier
+                    .wrapContentWidth() // 텍스트 길이에 맞춰 유동적으로 조절
+                    .height(42.dp)
+                    .clip(RoundedCornerShape(21.dp))
+                    .background(Color.White)
+                    .border(1.dp, Color(0xFFEEEEEE), RoundedCornerShape(21.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                // 1. 하단 배경 컬러 바
+                Row(modifier = Modifier.matchParentSize()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .weight(animatedPWeight.coerceAtLeast(0.01f))
+                            .background(postechColor.copy(alpha = 0.12f))
+                    )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .weight(animatedKWeight.coerceAtLeast(0.01f))
+                            .background(kaistColor.copy(alpha = 0.12f))
+                    )
+                }
+
+                // 2. 상단 텍스트 (POSTECH 2 : 5 KAIST 형식)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                ) {
+                    // POSTECH 영역
+                    Text(text = "POSTECH ", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = postechColor, fontFamily = UnivsFontFamily)
+                    Text(text = pScore.toString(), fontSize = 16.sp, fontWeight = FontWeight.Black, fontFamily = UnivsFontFamily, color = Color.DarkGray)
+
+                    Text(" : ", color = Color.LightGray, modifier = Modifier.padding(horizontal = 4.dp), fontWeight = FontWeight.Bold)
+
+                    // KAIST 영역
+                    Text(text = kScore.toString(), fontSize = 16.sp, fontWeight = FontWeight.Black, fontFamily = UnivsFontFamily, color = Color.DarkGray)
+                    Text(text = " KAIST", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = kaistColor, fontFamily = UnivsFontFamily)
+                }
             }
         }
 
+        // 2. 시간표 영역 (기존과 동일)
         BoxWithConstraints(modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(20.dp)).border(2.dp, themeBorderColor, RoundedCornerShape(20.dp)).background(Color.White)) {
             val totalHeightDp = maxHeight
             val hourHeight = (totalHeightDp - 44.dp) / totalHours
@@ -168,7 +227,7 @@ fun ScheduleScreen(
     }
 }
 
-// InfoDetailItem, formatTimeRange, ScoreBadge 함수는 기존과 동일 (생략)
+// 나머지 헬퍼 함수들은 동일합니다.
 @Composable
 fun InfoDetailItem(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, value: String) {
     Row(modifier = Modifier.padding(vertical = 12.dp), verticalAlignment = Alignment.Top) {
@@ -189,13 +248,4 @@ fun formatTimeRange(start: Double, duration: Double): String {
         return "%02d:%02d".format(h, m)
     }
     return "${toStr(start)} - ${toStr(end)}"
-}
-
-@Composable
-fun ScoreBadge(label: String, score: Int, color: Color) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Text(text = label, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = color, fontFamily = UnivsFontFamily)
-        Spacer(modifier = Modifier.width(4.dp))
-        Text(text = score.toString(), fontSize = 16.sp, fontWeight = FontWeight.Black, fontFamily = UnivsFontFamily)
-    }
 }
