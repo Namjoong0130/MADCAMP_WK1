@@ -2,9 +2,9 @@
 - 프로젝트 설명)
 - 한 줄 소개 : UNIVS는 더 나은 카포전, 포카전을 위한 다기능 통합 어플리케이션이다
 - 슬로건 : 대학 간 교류의 장을 펼치자
-- 사용된 기술 :
+- 사용된 기술 : JWT 인증 / PM2 / Nignx / EC2 & RDS
 - 프론트 엔드 -> COTLIN
-- 백 엔드 -> 작성해줘
+- 백 엔드 -> Node.js + Express (TypeScript) / Prisma + MySQL(RDS) / Zod 
 - 팀원) 임남중, 이준엽
 - 움짤 및 영상) 
 - APK 파일)
