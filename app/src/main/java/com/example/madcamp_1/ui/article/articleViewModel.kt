@@ -1,4 +1,3 @@
-// app/src/main/java/com/example/madcamp_1/ui/screen/article/articleViewModel.kt
 package com.example.madcamp_1.ui.screen.article
 
 import android.util.Log
@@ -10,16 +9,17 @@ import com.example.madcamp_1.ui.screen.dashboard.Media
 import com.example.madcamp_1.ui.screen.dashboard.Post
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
-import java.util.Locale
-import java.util.TimeZone
+import java.util.*
 
+// ✅ 1. UiComment 정의 (이게 없으면 빨간색으로 뜹니다)
 data class UiComment(
     val id: String,
     val postId: String,
     val content: String,
-    val createdAtMillis: Long,
+    val createdAtMillis: Long, // ✅ 여기서 정의되어야 함
     val authorNickname: String?,
     val authorSchoolId: String?
 )
@@ -38,16 +38,13 @@ class ArticleViewModel : ViewModel() {
     private val _isBusy = MutableStateFlow(false)
     val isBusy = _isBusy.asStateFlow()
 
-    fun onCommentTextChange(v: String) {
-        _commentText.value = v
-    }
+    fun onCommentTextChange(v: String) { _commentText.value = v }
 
     fun fetch(postId: String) {
         viewModelScope.launch {
             _isBusy.value = true
             try {
                 val dto = RetrofitClient.apiService.getPostDetail(postId)
-
                 val category = dto.tags?.firstOrNull()?.tag?.name ?: "소통"
                 val medias = dto.medias.orEmpty().map { m -> Media(id = m.id, url = m.url) }
 
@@ -65,28 +62,41 @@ class ArticleViewModel : ViewModel() {
                     commentCount = dto.commentCount ?: 0,
                     medias = medias
                 )
-
                 fetchComments(postId)
             } catch (e: Exception) {
                 Log.e("ArticleViewModel", "fetch 실패: ${e.message}")
-                _post.value = null
             } finally {
                 _isBusy.value = false
             }
         }
     }
 
+    // ✅ 좋아요 토글 (낙관적 업데이트)
+    private var isLikeToggling = false
+
     fun toggleLike() {
-        val p = _post.value ?: return
+        val currentPost = _post.value ?: return
+        if (isLikeToggling) return
+
         viewModelScope.launch {
+            isLikeToggling = true
+
+            // 1. 낙관적 업데이트
+            val willBeLiked = !currentPost.likedByMe
+            val newLikesCount = if (willBeLiked) currentPost.likes + 1 else currentPost.likes - 1
+
+            // ✅ .value = ... 대신 .update { ... } 를 사용하면 더 안전합니다. (import kotlinx.coroutines.flow.update)
+            _post.update { it?.copy(likedByMe = willBeLiked, likes = newLikesCount) }
+
             try {
-                val res = RetrofitClient.apiService.toggleLike(p.id)
-                _post.value = p.copy(
-                    likes = res.likeCount,
-                    likedByMe = res.liked
-                )
+                val res = RetrofitClient.apiService.toggleLike(currentPost.id)
+                // 2. 서버 값으로 최종 동기화
+                _post.update { it?.copy(likes = res.likeCount, likedByMe = res.liked) }
             } catch (e: Exception) {
-                Log.e("ArticleViewModel", "toggleLike 실패: ${e.message}")
+                // 3. 실패 시 롤백
+                _post.update { currentPost }
+            } finally {
+                isLikeToggling = false
             }
         }
     }
@@ -99,17 +109,12 @@ class ArticleViewModel : ViewModel() {
         viewModelScope.launch {
             _isBusy.value = true
             try {
-                RetrofitClient.apiService.createComment(
-                    id = p.id,
-                    body = CommentCreateRequest(content = content)
-                )
+                RetrofitClient.apiService.createComment(p.id, CommentCreateRequest(content))
                 _commentText.value = ""
-
-                // ✅ 정합성: 댓글 목록 갱신 후, detail도 다시 불러서 commentCount/likedByMe 등 동기화
                 fetchComments(p.id)
                 fetch(p.id)
             } catch (e: Exception) {
-                Log.e("ArticleViewModel", "sendComment 실패: ${e.message}")
+                Log.e("ArticleViewModel", "댓글 실패")
             } finally {
                 _isBusy.value = false
             }
@@ -120,21 +125,22 @@ class ArticleViewModel : ViewModel() {
         try {
             val res = RetrofitClient.apiService.getComments(postId)
             _comments.value = res.items.map { c ->
+                // ✅ 여기서 CommentDto를 UiComment로 변환
                 UiComment(
                     id = c.id,
                     postId = c.postId,
                     content = c.content,
-                    createdAtMillis = parseIsoDateToMillis(c.createdAt),
+                    createdAtMillis = parseIsoDateToMillis(c.createdAt), // ✅ 여기서 사용됨
                     authorNickname = c.author?.nickname,
                     authorSchoolId = c.author?.schoolId
                 )
             }.sortedBy { it.createdAtMillis }
         } catch (e: Exception) {
-            Log.e("ArticleViewModel", "fetchComments 실패: ${e.message}")
             _comments.value = emptyList()
         }
     }
 
+    // ✅ 날짜 파싱 유틸
     private fun parseIsoDateToMillis(isoString: String): Long {
         val patterns = listOf(
             "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",

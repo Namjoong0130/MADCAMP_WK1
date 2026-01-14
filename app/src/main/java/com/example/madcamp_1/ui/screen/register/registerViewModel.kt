@@ -24,13 +24,21 @@ class RegisterViewModel : ViewModel() {
     private val _password = MutableStateFlow("")
     val password = _password.asStateFlow()
 
+    private val _confirmPassword = MutableStateFlow("")
+    val confirmPassword = _confirmPassword.asStateFlow()
+
+    private val _isAgreed = MutableStateFlow(false)
+    val isAgreed = _isAgreed.asStateFlow()
+
     private val _errorEvent = MutableSharedFlow<String>()
     val errorEvent = _errorEvent.asSharedFlow()
 
-    fun onSchoolChange(newSchool: String) { _school.value = newSchool }
-    fun onEmailChange(newEmail: String) { _email.value = newEmail }
-    fun onUsernameChange(newName: String) { _username.value = newName }
-    fun onPasswordChange(newPw: String) { _password.value = newPw }
+    fun onSchoolChange(v: String) { _school.value = v }
+    fun onEmailChange(v: String) { _email.value = v }
+    fun onUsernameChange(v: String) { _username.value = v }
+    fun onPasswordChange(v: String) { _password.value = v }
+    fun onConfirmPasswordChange(v: String) { _confirmPassword.value = v }
+    fun onAgreementChange(v: Boolean) { _isAgreed.value = v }
 
     private fun mapSchoolToId(schoolName: String): String? {
         return when (schoolName) {
@@ -40,23 +48,26 @@ class RegisterViewModel : ViewModel() {
         }
     }
 
-    // 오직 이 함수가 호출될 때만 검증이 시작됩니다.
     fun register(onSuccess: () -> Unit) {
         viewModelScope.launch {
-            // [1순위] 학교 선택 여부
             if (_school.value.isBlank()) {
                 _errorEvent.emit("소속 학교를 반드시 선택해주세요.")
                 return@launch
             }
-
-            // [2순위] 비밀번호 규칙 검사
             if (_password.value.length < 6) {
                 _errorEvent.emit("비밀번호는 6자리 이상이어야 합니다.")
                 return@launch
             }
+            if (_password.value != _confirmPassword.value) {
+                _errorEvent.emit("비밀번호가 일치하지 않습니다.")
+                return@launch
+            }
+            if (!_isAgreed.value) {
+                _errorEvent.emit("이용약관 및 개인정보 수집에 동의해주세요.")
+                return@launch
+            }
 
             try {
-                // [3순위 & 4순위] 서버 요청을 통한 중복 및 유효성 검사
                 RetrofitClient.apiService.register(
                     RegisterRequest(
                         email = _email.value,
@@ -68,14 +79,11 @@ class RegisterViewModel : ViewModel() {
                 onSuccess()
             } catch (e: HttpException) {
                 val errorBody = e.response()?.errorBody()?.string() ?: ""
-
                 val message = when {
-                    // 이메일 중복 우선 확인
                     errorBody.contains("email", ignoreCase = true) -> "이미 사용 중인 이메일입니다."
-                    // 아이디 중복 확인
                     errorBody.contains("nickname", ignoreCase = true) ||
                             errorBody.contains("username", ignoreCase = true) -> "이미 존재하는 아이디입니다."
-                    else -> "회원가입에 실패했습니다. 다시 시도해주세요."
+                    else -> "회원가입 실패: 다시 시도해주세요."
                 }
                 _errorEvent.emit(message)
             } catch (e: Exception) {

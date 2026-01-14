@@ -3,6 +3,8 @@ package com.example.madcamp_1.ui.screen.write
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.animateColorAsState // 추가
+import androidx.compose.animation.core.tween        // 추가
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -20,6 +22,7 @@ import androidx.compose.material.icons.outlined.HelpOutline
 import androidx.compose.material.icons.outlined.Lightbulb
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue // 추가
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -46,7 +49,7 @@ data class WriteTagConfig(
 fun WriteScreen(
     viewModel: WriteViewModel,
     onBack: () -> Unit,
-    onComplete: (String?, String, String, String, Boolean) -> Unit // (기존 호환용)
+    onComplete: (String?, String, String, String, Boolean) -> Unit
 ) {
     val context = LocalContext.current
     val schoolId = AuthManager.getSchoolId()
@@ -110,7 +113,7 @@ fun WriteScreen(
                 .padding(innerPadding)
                 .padding(horizontal = 20.dp)
         ) {
-            // 태그
+            // ✅ 애니메이션이 적용된 태그 바
             Row(
                 modifier = Modifier
                     .padding(vertical = 12.dp)
@@ -119,9 +122,27 @@ fun WriteScreen(
             ) {
                 tagConfigs.forEach { config ->
                     val isSelected = viewModel.selectedTag == config.name
-                    val contentColor = if (isSelected) Color.White else config.color
-                    val containerColor = if (isSelected) config.color else config.color.copy(alpha = 0.08f)
-                    val borderColor = config.color.copy(alpha = 0.6f)
+
+                    // 1. 배경색 애니메이션
+                    val animatedContainerColor by animateColorAsState(
+                        targetValue = if (isSelected) config.color else config.color.copy(alpha = 0.08f),
+                        animationSpec = tween(durationMillis = 300),
+                        label = "containerColor"
+                    )
+
+                    // 2. 콘텐츠(텍스트/아이콘)색 애니메이션
+                    val animatedContentColor by animateColorAsState(
+                        targetValue = if (isSelected) Color.White else config.color,
+                        animationSpec = tween(durationMillis = 300),
+                        label = "contentColor"
+                    )
+
+                    // 3. 테두리색 애니메이션
+                    val animatedBorderColor by animateColorAsState(
+                        targetValue = if (isSelected) Color.Transparent else config.color.copy(alpha = 0.3f),
+                        animationSpec = tween(durationMillis = 300),
+                        label = "borderColor"
+                    )
 
                     FilterChip(
                         selected = isSelected,
@@ -132,7 +153,7 @@ fun WriteScreen(
                                     imageVector = config.icon,
                                     contentDescription = null,
                                     modifier = Modifier.size(15.dp),
-                                    tint = contentColor
+                                    tint = animatedContentColor // 애니메이션 적용
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
@@ -140,20 +161,21 @@ fun WriteScreen(
                                     fontFamily = UnivsFontFamily,
                                     fontSize = 13.sp,
                                     fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Bold,
-                                    color = contentColor
+                                    color = animatedContentColor // 애니메이션 적용
                                 )
                             }
                         },
                         shape = RoundedCornerShape(13.dp),
                         colors = FilterChipDefaults.filterChipColors(
-                            containerColor = containerColor,
-                            selectedContainerColor = config.color,
-                            selectedLabelColor = Color.White
+                            containerColor = animatedContainerColor, // 애니메이션 적용
+                            labelColor = animatedContentColor,
+                            selectedContainerColor = animatedContainerColor,
+                            selectedLabelColor = animatedContentColor
                         ),
                         border = FilterChipDefaults.filterChipBorder(
                             enabled = true,
                             selected = isSelected,
-                            borderColor = borderColor,
+                            borderColor = animatedBorderColor, // 애니메이션 적용
                             selectedBorderColor = Color.Transparent,
                             borderWidth = 1.dp
                         ),
@@ -219,7 +241,7 @@ fun WriteScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 이미지 첨부
+            // 이미지 첨부 영역
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -294,9 +316,7 @@ fun WriteScreen(
             // 게시 버튼
             Button(
                 onClick = {
-                    // ✅ 이제는 ViewModel이 업로드를 전담
                     viewModel.uploadPostToServer(context) {
-                        // 기존 호환 콜백(화면 이동 등)만 유지
                         onBack()
                     }
                 },
