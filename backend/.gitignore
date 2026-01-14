@@ -1,0 +1,21 @@
+
+# build output
+dist/
+*.tsbuildinfo
+
+# maps & types (원하면 더 제외 가능)
+# *.map
+# *.d.ts
+# *.d.ts.map
+
+# env
+.env
+.env.development
+
+# build artifacts
+dist/
+*.tsbuildinfo
+src/**/*.js
+src/**/*.js.map
+src/**/*.d.ts
+src/**/*.d.ts.map

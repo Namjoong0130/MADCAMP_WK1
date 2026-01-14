@@ -1,0 +1,309 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+model User {
+  id              String         @id @default(cuid())
+  email           String         @unique
+  passwordHash    String
+  nickname        String
+  role            UserRole       @default(USER)
+  schoolId        String?
+  profileImageUrl String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  deletedAt       DateTime?
+  comments        Comment[]
+  deviceTokens    DeviceToken[]
+  media           Media[]        @relation("UserMedia")
+  notifications   Notification[]
+  posts           Post[]
+  postLikes       PostLike[]
+  refreshTokens   RefreshToken[]
+  shareLinks      ShareLink[]
+  school          School?        @relation(fields: [schoolId], references: [id])
+
+  @@index([schoolId], map: "User_schoolId_fkey")
+}
+
+model RefreshToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  createdAt DateTime  @default(now())
+  revokedAt DateTime?
+  user      User      @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+}
+
+model School {
+  id              String        @id @default(cuid())
+  name            String        @unique
+  shortName       String?
+  logoUrl         String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  cheerMethods    CheerMethod[]
+  schedulesAsAway Schedule[]    @relation("AwaySchool")
+  schedulesAsHome Schedule[]    @relation("HomeSchool")
+  users           User[]
+}
+
+model Post {
+  id           String      @id @default(cuid())
+  authorId     String
+  title        String
+  content      String
+  visibility   Visibility  @default(PUBLIC)
+  likeCount    Int         @default(0)
+  commentCount Int         @default(0)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  deletedAt    DateTime?
+  comments     Comment[]
+  author       User        @relation(fields: [authorId], references: [id])
+  likes        PostLike[]
+  medias       PostMedia[]
+  tags         PostTag[]
+
+  @@index([authorId])
+  @@index([createdAt])
+  @@index([updatedAt])
+}
+
+model PostLike {
+  userId    String
+  postId    String
+  createdAt DateTime @default(now())
+  post      Post     @relation(fields: [postId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@id([userId, postId])
+  @@index([postId])
+}
+
+model Comment {
+  id        String    @id @default(cuid())
+  postId    String
+  authorId  String
+  content   String
+  parentId  String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+  author    User      @relation(fields: [authorId], references: [id])
+  parent    Comment?  @relation("CommentThread", fields: [parentId], references: [id])
+  replies   Comment[] @relation("CommentThread")
+  post      Post      @relation(fields: [postId], references: [id])
+
+  @@index([postId])
+  @@index([authorId])
+  @@index([createdAt])
+  @@index([parentId], map: "Comment_parentId_fkey")
+}
+
+model Schedule {
+  id           String         @id @default(cuid())
+  title        String
+  description  String?
+  startAt      DateTime
+  endAt        DateTime?
+  status       ScheduleStatus @default(SCHEDULED)
+  locationName String?
+  address      String?
+  lat          Float?
+  lng          Float?
+  homeSchoolId String?
+  awaySchoolId String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  deletedAt    DateTime?
+  awaySchool   School?        @relation("AwaySchool", fields: [awaySchoolId], references: [id])
+  homeSchool   School?        @relation("HomeSchool", fields: [homeSchoolId], references: [id])
+
+  @@index([startAt])
+  @@index([updatedAt])
+  @@index([awaySchoolId], map: "Schedule_awaySchoolId_fkey")
+  @@index([homeSchoolId], map: "Schedule_homeSchoolId_fkey")
+}
+
+model InfoCategory {
+  id        String @id @default(cuid())
+  name      String @unique
+  sortOrder Int    @default(0)
+  infos     Info[]
+}
+
+model Info {
+  id           String        @id @default(cuid())
+  categoryId   String?
+  title        String
+  content      String
+  sourceUrl    String?
+  locationName String?
+  address      String?
+  lat          Float?
+  lng          Float?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  deletedAt    DateTime?
+  category     InfoCategory? @relation(fields: [categoryId], references: [id])
+  tags         InfoTag[]
+
+  @@index([categoryId])
+  @@index([updatedAt])
+}
+
+model CheerMethod {
+  id        String    @id @default(cuid())
+  schoolId  String?
+  title     String
+  content   String
+  mediaUrl  String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+  school    School?   @relation(fields: [schoolId], references: [id])
+
+  @@index([schoolId])
+}
+
+model Tag {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  createdAt DateTime  @default(now())
+  infoTags  InfoTag[]
+  postTags  PostTag[]
+}
+
+model PostTag {
+  postId String
+  tagId  String
+  post   Post   @relation(fields: [postId], references: [id])
+  tag    Tag    @relation(fields: [tagId], references: [id])
+
+  @@id([postId, tagId])
+  @@index([tagId])
+}
+
+model InfoTag {
+  infoId String
+  tagId  String
+  info   Info   @relation(fields: [infoId], references: [id])
+  tag    Tag    @relation(fields: [tagId], references: [id])
+
+  @@id([infoId, tagId])
+  @@index([tagId])
+}
+
+model Media {
+  id         String      @id @default(cuid())
+  uploaderId String?
+  url        String
+  mimeType   String?
+  size       Int?
+  width      Int?
+  height     Int?
+  createdAt  DateTime    @default(now())
+  deletedAt  DateTime?
+  uploader   User?       @relation("UserMedia", fields: [uploaderId], references: [id])
+  postMedias PostMedia[]
+
+  @@index([uploaderId])
+}
+
+model PostMedia {
+  postId    String
+  mediaId   String
+  sortOrder Int    @default(0)
+  media     Media  @relation(fields: [mediaId], references: [id])
+  post      Post   @relation(fields: [postId], references: [id])
+
+  @@id([postId, mediaId])
+  @@index([mediaId])
+}
+
+model DeviceToken {
+  id         String    @id @default(cuid())
+  userId     String
+  token      String    @unique
+  platform   Platform
+  lastSeenAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  user       User      @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  type      NotificationType
+  title     String
+  body      String
+  dataJson  String?
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+  user      User             @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
+}
+
+model ShareLink {
+  id          String          @id @default(cuid())
+  entityType  ShareEntityType
+  entityId    String
+  slug        String          @unique
+  createdAt   DateTime        @default(now())
+  expiresAt   DateTime?
+  createdById String
+  createdBy   User            @relation(fields: [createdById], references: [id])
+
+  @@index([entityType, entityId])
+  @@index([createdById])
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum Platform {
+  ANDROID
+  IOS
+  WEB
+}
+
+enum Visibility {
+  PUBLIC
+  SCHOOL_ONLY
+}
+
+enum ScheduleStatus {
+  SCHEDULED
+  FINISHED
+  CANCELED
+}
+
+enum NotificationType {
+  POST_LIKED
+  COMMENT_ADDED
+  SCHEDULE_REMINDER
+  INFO_UPDATED
+  GENERAL
+}
+
+enum ShareEntityType {
+  POST
+  SCHEDULE
+  INFO
+  CHEER
+}
