@@ -58,7 +58,7 @@ fun BattleScreen(viewModel: BattleViewModel) {
     val animatedBtnScale by animateFloatAsState(targetValue = btnScale, label = "btnScale")
     var tapEffectTrigger by remember { mutableIntStateOf(0) }
     var showEasterEgg by remember { mutableStateOf(false) }
-    var showPrizeDialog by remember { mutableStateOf(false) } // ✅ 상태 관리
+    var showPrizeDialog by remember { mutableStateOf(false) }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize().background(Color.White)) {
@@ -86,10 +86,10 @@ fun BattleScreen(viewModel: BattleViewModel) {
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // 상품 확인 버튼
+            // 상품 확인 버튼 (트로피 아이콘)
             Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                 Surface(
-                    onClick = { showPrizeDialog = true }, // ✅ 컴포저블 호출이 아닌 상태값만 변경
+                    onClick = { showPrizeDialog = true },
                     color = Color(0xFFF8F9FA),
                     shape = RoundedCornerShape(20.dp),
                     border = BorderStroke(1.dp, Color(0xFFEEEEEE)),
@@ -131,9 +131,9 @@ fun BattleScreen(viewModel: BattleViewModel) {
             }
         }
 
-        // ✅ 상태에 따라 다이얼로그 호출 (Scaffold/Box 내부 적절한 위치)
+        // ✅ 한 화면에 사진과 글이 모두 나타나는 다이얼로그
         if (showPrizeDialog) {
-            PrizeTabDialog(
+            CombinedPrizeDialog(
                 userColor = userSchoolColor,
                 onDismiss = { showPrizeDialog = false }
             )
@@ -143,60 +143,94 @@ fun BattleScreen(viewModel: BattleViewModel) {
     }
 }
 
+/**
+ * 사진과 설명이 통합된 커스텀 다이얼로그
+ */
 @Composable
-fun PrizeTabDialog(userColor: Color, onDismiss: () -> Unit) {
-    var selectedTab by remember { mutableIntStateOf(0) }
-    val tabs = listOf("이벤트 안내", "당첨 상품")
-
+fun CombinedPrizeDialog(userColor: Color, onDismiss: () -> Unit) {
     Dialog(onDismissRequest = onDismiss) {
         Surface(
-            modifier = Modifier.fillMaxWidth(0.92f).fillMaxHeight(0.65f),
+            modifier = Modifier
+                .fillMaxWidth(0.94f)
+                .wrapContentHeight(),
             shape = RoundedCornerShape(28.dp),
             color = Color.White
         ) {
-            Column(modifier = Modifier.fillMaxSize()) {
-                Box(modifier = Modifier.fillMaxWidth().padding(vertical = 20.dp), contentAlignment = Alignment.Center) {
-                    Text("🎁 MADCAMP Battle Event", fontFamily = UnivsFontFamily, fontWeight = FontWeight.Black, fontSize = 18.sp)
-                }
+            Column(
+                modifier = Modifier
+                    .padding(20.dp)
+                    .verticalScroll(rememberScrollState()),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // 1. 상단 아이콘 및 제목
+                Icon(Icons.Default.EmojiEvents, null, tint = Color(0xFFFFB300), modifier = Modifier.size(40.dp))
+                Spacer(Modifier.height(8.dp))
+                Text("응원전 배틀 이벤트", fontFamily = UnivsFontFamily, fontWeight = FontWeight.Black, fontSize = 22.sp)
 
-                TabRow(
-                    selectedTabIndex = selectedTab,
-                    containerColor = Color.White,
-                    contentColor = userColor,
-                    indicator = { tabPositions ->
-                        TabRowDefaults.Indicator(
-                            Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
-                            color = userColor
-                        )
-                    }
+                Spacer(Modifier.height(20.dp))
+
+                // 2. 스타벅스 이미지 카드
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(20.dp),
+                    elevation = CardDefaults.cardElevation(2.dp)
                 ) {
-                    tabs.forEachIndexed { index, title ->
-                        Tab(
-                            selected = selectedTab == index,
-                            onClick = { selectedTab = index },
-                            text = { Text(title, fontFamily = UnivsFontFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp) }
-                        )
-                    }
+                    Image(
+                        painter = painterResource(id = R.drawable.starbucks),
+                        contentDescription = null,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(180.dp),
+                        contentScale = ContentScale.Crop
+                    )
                 }
 
-                Column(modifier = Modifier.weight(1f).padding(20.dp).verticalScroll(rememberScrollState())) {
-                    if (selectedTab == 0) {
-                        Text("포스텍 vs 카이스트 배틀!", fontFamily = UnivsFontFamily, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
-                        Spacer(Modifier.height(12.dp))
-                        Text("승리 학교 학생 중 추첨을 통해 기프티콘을 드립니다.", fontFamily = UnivsFontFamily, fontSize = 14.sp, color = Color.Gray)
-                    } else {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Card(shape = RoundedCornerShape(16.dp)) {
-                                Image(painter = painterResource(id = R.drawable.starbucks), null, Modifier.fillMaxWidth().height(160.dp), contentScale = ContentScale.Crop)
-                            }
-                            Spacer(Modifier.height(12.dp))
-                            Text("스타벅스 아메리카노", fontFamily = UnivsFontFamily, fontWeight = FontWeight.Bold)
-                        }
-                    }
+                Spacer(Modifier.height(20.dp))
+
+                // 3. 이벤트 설명 (왼쪽 정렬)
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = "승리 학교를 위한 특별한 선물!",
+                        fontFamily = UnivsFontFamily,
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 17.sp,
+                        color = userColor
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        text = "지금 진행 중인 포스텍 vs 카이스트 배틀에서 승리한 학교 학생 중 활발히 참여해주신 50분을 추첨하여 [스타벅스 아메리카노]를 드립니다.",
+                        fontFamily = UnivsFontFamily,
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 14.sp,
+                        lineHeight = 22.sp,
+                        color = Color(0xFF444444)
+                    )
+
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp), color = Color(0xFFF5F5F5))
+
+                    Text(
+                        text = "• 참여 방법: TAP 버튼을 많이 누를수록 당첨 확률 UP!\n" +
+                                "• 결과 발표: 배틀 종료 후 공지사항 게시\n" +
+                                "• 경품 발송: 가입된 연락처로 기프티콘 전송",
+                        fontFamily = UnivsFontFamily,
+                        fontSize = 12.sp,
+                        lineHeight = 20.sp,
+                        color = Color.Gray
+                    )
                 }
 
-                Button(onClick = onDismiss, modifier = Modifier.fillMaxWidth().padding(20.dp).height(52.dp), shape = RoundedCornerShape(16.dp), colors = ButtonDefaults.buttonColors(containerColor = userColor)) {
-                    Text("확인", fontFamily = UnivsFontFamily, fontWeight = FontWeight.Bold)
+                Spacer(Modifier.height(24.dp))
+
+                // 4. 확인 버튼
+                Button(
+                    onClick = onDismiss,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(54.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = userColor)
+                ) {
+                    Text("열심히 탭할게요!", fontFamily = UnivsFontFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                 }
             }
         }
