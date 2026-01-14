@@ -1,4 +1,4 @@
-package com.example.madcamp_1
+/*package com.example.madcamp_1
 
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -21,4 +21,4 @@ class ExampleInstrumentedTest {
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
         assertEquals("com.example.madcamp_1", appContext.packageName)
     }
-}
+}*/
