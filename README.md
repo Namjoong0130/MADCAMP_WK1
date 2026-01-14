@@ -171,8 +171,6 @@ dataUrlToImageBitmapOrNull.kt
 
 ## 6. 데이터 모델 요약
 
-> 스키마는 Prisma 기준 요약입니다.
-
 ### 게시판 핵심
 - `Post` : 게시글(작성자/내용/좋아요수/댓글수/공개범위)
 - `Comment` : 댓글(대댓글 구조 `parentId`)
