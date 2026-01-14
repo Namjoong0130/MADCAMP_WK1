@@ -38,9 +38,10 @@ data class PostTagDto(
 data class PostCreateRequest(
     val title: String,
     val content: String,
-    val visibility: String = "PUBLIC",
-    val tagIds: List<String> = emptyList(),   // 현재 서버는 tagId로 '공지', 'Q&A' 같은 값을 쓰는 구조
-    val mediaIds: List<String> = emptyList()
+    val visibility: String,
+    val tagIds: List<String>,
+    val mediaIds: List<String>,
+    val authorNickname: String // 👈 이 이름이 서버가 받는 이름과 정확히 일치해야 함
 )
 
 data class PostListResponse(

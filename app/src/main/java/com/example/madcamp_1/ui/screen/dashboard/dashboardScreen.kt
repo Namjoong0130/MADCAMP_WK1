@@ -236,9 +236,16 @@ private fun PostItem(
     val authorSchoolId = post.authorSchoolId
     val authorSchoolColor = UiMappings.schoolColor(authorSchoolId)
     val isSameSchool = !authorSchoolId.isNullOrBlank() && authorSchoolId.equals(mySchoolId, ignoreCase = true)
-
-    // 하트 색상 고정
     val heartColor = Color(0xFFE53935)
+
+    // ✅ 카테고리에 맞는 아이콘 가져오기
+    val tagIcon = when (post.category) {
+        "공지" -> Icons.Outlined.Campaign
+        "소통" -> Icons.Outlined.ChatBubbleOutline
+        "꿀팁" -> Icons.Outlined.Lightbulb
+        "Q&A" -> Icons.Outlined.HelpOutline
+        else -> Icons.Outlined.Campaign // 기본값
+    }
 
     Card(
         modifier = Modifier
@@ -256,25 +263,41 @@ private fun PostItem(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                // ✅ 파스텔 톤으로 변경된 게시글 태그
+                // ✅ 아이콘이 추가된 태그 디자인
                 Surface(
-                    color = tagColor.copy(alpha = 0.15f), // 연한 파스텔 배경
-                    shape = RoundedCornerShape(10.dp)
-                ) {
-                    Text(
-                        text = post.category,
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                        color = tagColor, // 글자는 원래의 진한 색상 유지 (가독성)
-                        fontSize = 11.sp,
-                        fontFamily = UnivsFontFamily,
-                        fontWeight = FontWeight.ExtraBold
+                    color = tagColor.copy(alpha = 0.15f),
+                    shape = RoundedCornerShape(12.dp),
+                    border = androidx.compose.foundation.BorderStroke(
+                        width = 1.dp,
+                        color = tagColor.copy(alpha = 0.3f)
                     )
+                ) {
+                    // ✅ Row를 사용하여 아이콘과 텍스트 정렬
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = tagIcon,
+                            contentDescription = null,
+                            modifier = Modifier.size(12.dp),
+                            tint = tagColor // 텍스트와 동일한 색상 적용
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = post.category,
+                            color = tagColor,
+                            fontSize = 11.sp,
+                            fontFamily = UnivsFontFamily,
+                            fontWeight = FontWeight.ExtraBold
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(10.dp))
 
                 Text(
-                    text = post.title,
+                    text = post.displayTitle,
                     fontFamily = UnivsFontFamily,
                     fontWeight = FontWeight.ExtraBold,
                     fontSize = 16.sp,
@@ -293,13 +316,11 @@ private fun PostItem(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // ✅ 하단 메타 정보 영역 수정
-                // ✅ 하단 메타 정보 영역: 간격 최적화 및 세로 바 구분선 적용
+                // 하단 메타 정보 (동일)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // 1. 좋아요 (왼쪽 고정)
                     Icon(
                         imageVector = Icons.Default.Favorite,
                         contentDescription = null,
@@ -315,9 +336,8 @@ private fun PostItem(
                         color = Color(0xFF424242)
                     )
 
-                    Spacer(modifier = Modifier.width(10.dp)) // 좋아요와 댓글 사이 간격 유지
+                    Spacer(modifier = Modifier.width(10.dp))
 
-                    // 2. 댓글 (왼쪽 고정)
                     Icon(
                         imageVector = Icons.Outlined.ChatBubbleOutline,
                         contentDescription = null,
@@ -333,12 +353,10 @@ private fun PostItem(
                         color = Color(0xFF424242)
                     )
 
-                    // ✅ 구분선 및 정보 밀착 배치
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("|", fontSize = 9.sp, color = Color(0xFFE0E0E0)) // 연한 회색 세로 바
+                    Text("|", fontSize = 9.sp, color = Color(0xFFE0E0E0))
                     Spacer(modifier = Modifier.width(8.dp))
 
-                    // 3. 시간
                     Text(
                         text = UiMappings.formatDashboardTime(post.timestamp),
                         fontFamily = UnivsFontFamily,
@@ -347,21 +365,23 @@ private fun PostItem(
                     )
 
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("|", fontSize = 9.sp, color = Color(0xFFE0E0E0)) // 연한 회색 세로 바
+                    Text("|", fontSize = 9.sp, color = Color(0xFFE0E0E0))
                     Spacer(modifier = Modifier.width(8.dp))
 
-                    // 4. 작성자 (학교 색상 배경 닉네임)
-                    val bgAlpha = if (isSameSchool) 0.18f else 0.10f
+                    val isAnonymousPost = post.displayAuthor == "익명"
+                    val bgAlpha = if (isAnonymousPost) 0.05f else (if (isSameSchool) 0.18f else 0.10f)
+                    val authorColor = if (isAnonymousPost) Color.Gray else authorSchoolColor
+
                     Surface(
-                        color = authorSchoolColor.copy(alpha = bgAlpha),
-                        shape = RoundedCornerShape(6.dp)
+                        color = authorColor.copy(alpha = bgAlpha),
+                        shape = RoundedCornerShape(10.dp)
                     ) {
                         Text(
-                            text = post.author,
+                            text = post.displayAuthor,
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
                             fontFamily = UnivsFontFamily,
                             fontSize = 10.sp,
-                            color = authorSchoolColor,
+                            color = authorColor,
                             fontWeight = FontWeight.ExtraBold,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
@@ -370,7 +390,7 @@ private fun PostItem(
                 }
             }
 
-            // 우측 썸네일 (썸네일이 있어도 좌측 메타 정보의 위치는 영향을 받지 않음)
+            // 우측 썸네일 (동일)
             if (!post.imageUri.isNullOrBlank()) {
                 Spacer(modifier = Modifier.width(12.dp))
                 val decoded = remember(post.imageUri) {
@@ -398,28 +418,5 @@ private fun PostItem(
                 }
             }
         }
-    }
-}
-
-
-@Composable
-private fun SchoolBadge(
-    label: String,
-    color: Color,
-    emphasize: Boolean
-) {
-    val bg = if (emphasize) color.copy(alpha = 0.20f) else color.copy(alpha = 0.12f)
-    Box(
-        modifier = Modifier
-            .background(bg, RoundedCornerShape(10.dp))
-            .padding(horizontal = 8.dp, vertical = 3.dp)
-    ) {
-        Text(
-            text = label,
-            fontFamily = UnivsFontFamily,
-            fontSize = 10.sp,
-            fontWeight = FontWeight.ExtraBold,
-            color = color
-        )
     }
 }

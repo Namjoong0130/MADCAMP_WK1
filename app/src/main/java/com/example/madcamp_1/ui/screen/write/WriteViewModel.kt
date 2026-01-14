@@ -11,6 +11,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.madcamp_1.data.api.RetrofitClient
 import com.example.madcamp_1.data.model.MediaCreateRequest
 import com.example.madcamp_1.data.model.PostCreateRequest
+import com.example.madcamp_1.data.utils.AuthManager
 import kotlinx.coroutines.launch
 import java.io.ByteArrayOutputStream
 
@@ -26,19 +27,13 @@ class WriteViewModel : ViewModel() {
     fun onContentChange(newText: String) {
         if (newText.length <= 180) content = newText
     }
-
     fun onTagSelect(tag: String) { selectedTag = tag }
-
-    fun onImagesSelected(uris: List<Uri>) {
-        selectedImageUris = uris
-    }
-
+    fun onImagesSelected(uris: List<Uri>) { selectedImageUris = uris }
     fun removeImageAt(index: Int) {
         selectedImageUris = selectedImageUris.toMutableList().also { list ->
             if (index in list.indices) list.removeAt(index)
         }
     }
-
     fun toggleAnonymous(value: Boolean) { isAnonymous = value }
 
     fun clearFields() {
@@ -54,27 +49,25 @@ class WriteViewModel : ViewModel() {
             isUploading = true
             try {
                 val mediaIds = mutableListOf<String>()
-
-                // ✅ 여러 이미지 업로드 → mediaIds 확보
                 for (uri in selectedImageUris) {
                     val base64 = toBase64Jpeg(context, uri) ?: continue
-                    val mediaRes = RetrofitClient.apiService.uploadMedia(
-                        MediaCreateRequest(url = base64)
-                    )
+                    val mediaRes = RetrofitClient.apiService.uploadMedia(MediaCreateRequest(url = base64))
                     mediaIds.add(mediaRes.id)
                 }
 
-                // ✅ 게시글 생성
+                val finalTitle = if (isAnonymous) "[익명] $title" else title
+                val finalNickname = if (isAnonymous) "익명" else AuthManager.getNickname()
+
                 RetrofitClient.apiService.createPost(
                     PostCreateRequest(
-                        title = title,
+                        title = finalTitle, // 👈 제목에 정보를 숨겨서 보냄
                         content = content,
-                        visibility = "PUBLIC",
+                        visibility = "PUBLIC", // 👈 에러 방지 및 대시보드 노출을 위해 PUBLIC 고정
                         tagIds = listOf(selectedTag),
-                        mediaIds = mediaIds
+                        mediaIds = mediaIds,
+                        authorNickname = finalNickname
                     )
                 )
-
                 clearFields()
                 onSuccess()
             } catch (e: Exception) {
