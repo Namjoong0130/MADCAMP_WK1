@@ -53,7 +53,32 @@ async function resolveTagIds(tagInputs: string[]) {
   return Array.from(new Set(resolved));
 }
 
+/**
+ * ✅ 공통: 응답용 매핑
+ * - medias 평탄화
+ * - likeCount, likedByMe 계산
+ * - prisma include 부가필드(_count, likes) 제거
+ */
+function mapPostForResponse(p: any, viewerUserId?: string) {
+  const mediasFlat = (p.medias ?? []).map((pm: any) => pm.media).filter(Boolean);
+
+  const likeCount = p._count?.likes ?? 0;
+  const likedByMe = viewerUserId ? (p.likes?.length ?? 0) > 0 : false;
+
+  const { _count, likes, ...rest } = p;
+
+  return {
+    ...rest,
+    medias: mediasFlat,
+    contentPreview: p.content?.length > 80 ? p.content.slice(0, 80) : p.content,
+    likeCount,
+    likedByMe,
+  };
+}
+
+// -------------------------------------------------------------------
 // GET /posts (public) - 토큰 있으면 likedByMe 포함
+// -------------------------------------------------------------------
 postsRouter.get(
   "/",
   optionalAuth,
@@ -66,59 +91,50 @@ postsRouter.get(
       ...(tag ? { tags: { some: { tag: { name: tag } } } } : {}),
     };
 
+    // ✅ include 구성 (로그인 여부에 따라 likes include만 추가)
+    const include: any = {
+      author: { select: { id: true, nickname: true, schoolId: true, profileImageUrl: true } },
+      tags: { include: { tag: { select: { id: true, name: true } } } },
+      medias: {
+        take: 1,
+        include: {
+          media: { select: { id: true, url: true, mimeType: true, size: true, width: true, height: true } },
+        },
+      },
+      _count: { select: { likes: true } }, // ✅ Post의 관계필드명은 likes
+    };
+
+    if (req.user) {
+      include.likes = {
+        where: { userId: req.user.id },
+        select: { userId: true, postId: true }, // ✅ PostLike에는 id 없음
+      };
+    }
+
     const rows = await prisma.post.findMany({
       take: limit + 1,
       ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
       where,
       orderBy: { createdAt: "desc" },
-      include: {
-        author: { select: { id: true, nickname: true, schoolId: true, profileImageUrl: true } },
-        tags: { include: { tag: { select: { id: true, name: true } } } },
-
-        // ✅ 목록은 대표 1장만
-        medias: {
-          take: 1,
-          include: {
-            media: { select: { id: true, url: true, mimeType: true, size: true, width: true, height: true } },
-          },
-        },
-
-        // ✅ 좋아요 개수
-        _count: { select: { postLikes: true } },
-
-        // ✅ 로그인 유저면 likedByMe 계산
-        postLikes: req.user
-          ? { where: { userId: req.user.id }, select: { id: true } }
-          : false,
-      },
+      include,
     });
 
     // 기존 로직 유지 (SCHOOL_ONLY 필터)
     const filtered = rows.filter((p: any) => p.visibility !== "SCHOOL_ONLY");
+
     const hasNext = filtered.length > limit;
     const items = hasNext ? filtered.slice(0, limit) : filtered;
     const nextCursor = hasNext ? items[items.length - 1]?.id ?? null : null;
 
-    const mapped = items.map((p: any) => {
-      const mediasFlat = (p.medias ?? []).map((pm: any) => pm.media).filter(Boolean);
-      return {
-        ...p,
-        medias: mediasFlat,
-        contentPreview: p.content.length > 80 ? p.content.slice(0, 80) : p.content,
-
-        likeCount: p._count?.postLikes ?? 0,
-        likedByMe: req.user ? (p.postLikes?.length ?? 0) > 0 : false,
-      };
-    });
-
-    // prisma include로 붙은 필드 제거(원하시면 유지해도 됨)
-    const cleaned = mapped.map(({ _count, postLikes, ...rest }: any) => rest);
+    const cleaned = items.map((p: any) => mapPostForResponse(p, req.user?.id));
 
     res.json({ items: cleaned, nextCursor });
   })
 );
 
+// -------------------------------------------------------------------
 // POST /posts (auth)
+// -------------------------------------------------------------------
 postsRouter.post(
   "/",
   requireAuth,
@@ -142,25 +158,32 @@ postsRouter.post(
         medias: {
           take: 1,
           orderBy: { sortOrder: "asc" },
-          include: { media: { select: { id: true, url: true, mimeType: true, size: true, width: true, height: true } } },
+          include: {
+            media: { select: { id: true, url: true, mimeType: true, size: true, width: true, height: true } },
+          },
         },
-
-        _count: { select: { postLikes: true } },
-        postLikes: { where: { userId: req.user!.id }, select: { id: true } },
+        _count: { select: { likes: true } },
+        likes: {
+          where: { userId: req.user!.id },
+          select: { userId: true, postId: true },
+        },
       },
     });
 
     const flattened = flattenMedias(created);
 
+    // created.likes는 보통 0개라 likedByMe=false가 정상
     res.status(201).json({
       ...flattened,
-      likeCount: created._count?.postLikes ?? 0,
-      likedByMe: (created.postLikes?.length ?? 0) > 0,
+      likeCount: created._count?.likes ?? 0,
+      likedByMe: (created.likes?.length ?? 0) > 0,
     });
   })
 );
 
+// -------------------------------------------------------------------
 // GET /posts/:id (public) - 토큰 있으면 likedByMe 포함
+// -------------------------------------------------------------------
 postsRouter.get(
   "/:id",
   optionalAuth,
@@ -168,37 +191,42 @@ postsRouter.get(
     const id = req.params.id;
     if (typeof id !== "string") throw new HttpError(400, "Invalid id", "INVALID_ID");
 
+    const include: any = {
+      author: { select: { id: true, nickname: true, schoolId: true, profileImageUrl: true } },
+      tags: { include: { tag: { select: { id: true, name: true } } } },
+      medias: {
+        orderBy: { sortOrder: "asc" },
+        include: {
+          media: { select: { id: true, url: true, mimeType: true, size: true, width: true, height: true } },
+        },
+      },
+      _count: { select: { likes: true } },
+    };
+
+    if (req.user) {
+      include.likes = {
+        where: { userId: req.user.id },
+        select: { userId: true, postId: true },
+      };
+    }
+
     const post = await prisma.post.findUnique({
       where: { id },
-      include: {
-        author: { select: { id: true, nickname: true, schoolId: true, profileImageUrl: true } },
-        tags: { include: { tag: { select: { id: true, name: true } } } },
-        medias: {
-          orderBy: { sortOrder: "asc" },
-          include: { media: { select: { id: true, url: true, mimeType: true, size: true, width: true, height: true } } },
-        },
-
-        _count: { select: { postLikes: true } },
-        postLikes: req.user
-          ? { where: { userId: req.user.id }, select: { id: true } }
-          : false,
-      },
+      include,
     });
 
     if (!post) throw new HttpError(404, "리소스를 찾을 수 없습니다.", "NOT_FOUND");
     if (post.visibility === "SCHOOL_ONLY") throw new HttpError(403, "권한이 없습니다.", "FORBIDDEN");
 
-    const flattened = flattenMedias(post);
+    const cleaned = mapPostForResponse(post, req.user?.id);
 
-    res.json({
-      ...flattened,
-      likeCount: post._count?.postLikes ?? 0,
-      likedByMe: req.user ? (post.postLikes?.length ?? 0) > 0 : false,
-    });
+    res.json(cleaned);
   })
 );
 
+// -------------------------------------------------------------------
 // PATCH /posts/:id (작성자 or ADMIN)
+// -------------------------------------------------------------------
 postsRouter.patch(
   "/:id",
   requireAuth,
@@ -207,9 +235,9 @@ postsRouter.patch(
     if (typeof id !== "string") throw new HttpError(400, "Invalid id", "INVALID_ID");
     const body = PostUpdateSchema.parse(req.body);
 
-    const post = await prisma.post.findUnique({ where: { id }, select: { id: true, authorId: true } });
-    if (!post) throw new HttpError(404, "리소스를 찾을 수 없습니다.", "NOT_FOUND");
-    if (req.user!.role !== "ADMIN" && post.authorId !== req.user!.id) {
+    const before = await prisma.post.findUnique({ where: { id }, select: { id: true, authorId: true } });
+    if (!before) throw new HttpError(404, "리소스를 찾을 수 없습니다.", "NOT_FOUND");
+    if (req.user!.role !== "ADMIN" && before.authorId !== req.user!.id) {
       throw new HttpError(403, "권한이 없습니다.", "FORBIDDEN");
     }
 
@@ -222,7 +250,9 @@ postsRouter.patch(
         ...(body.content !== undefined ? { content: body.content } : {}),
         ...(body.visibility !== undefined ? { visibility: body.visibility } : {}),
 
-        ...(realTagIds !== undefined ? { tags: { deleteMany: {}, create: realTagIds.map((tagId) => ({ tagId })) } } : {}),
+        ...(realTagIds !== undefined
+          ? { tags: { deleteMany: {}, create: realTagIds.map((tagId) => ({ tagId })) } }
+          : {}),
 
         ...(body.mediaIds !== undefined
           ? { medias: { deleteMany: {}, create: body.mediaIds.map((mediaId, i) => ({ mediaId, sortOrder: i })) } }
@@ -233,11 +263,12 @@ postsRouter.patch(
         tags: { include: { tag: { select: { id: true, name: true } } } },
         medias: {
           orderBy: { sortOrder: "asc" },
-          include: { media: { select: { id: true, url: true, mimeType: true, size: true, width: true, height: true } } },
+          include: {
+            media: { select: { id: true, url: true, mimeType: true, size: true, width: true, height: true } },
+          },
         },
-
-        _count: { select: { postLikes: true } },
-        postLikes: { where: { userId: req.user!.id }, select: {userId: true, postId: true } },
+        _count: { select: { likes: true } },
+        likes: { where: { userId: req.user!.id }, select: { userId: true, postId: true } },
       },
     });
 
@@ -245,14 +276,15 @@ postsRouter.patch(
 
     res.json({
       ...flattened,
-      likeCount: updated._count?.postLikes ?? 0,
-      likedByMe: req.user ? (p.postLikes?.length ?? 0) > 0 : false,
+      likeCount: updated._count?.likes ?? 0,
+      likedByMe: (updated.likes?.length ?? 0) > 0,
     });
   })
 );
 
+// -------------------------------------------------------------------
 // ✅ POST /posts/:id/like (토글)
-// ✅ POST /posts/:id/like (토글)
+// -------------------------------------------------------------------
 postsRouter.post(
   "/:id/like",
   requireAuth,
@@ -271,7 +303,7 @@ postsRouter.post(
 
     const result = await prisma.$transaction(async (tx) => {
       const existing = await tx.postLike.findUnique({
-        where: { userId_postId: { userId, postId } }, // ✅ 확정된 복합키 이름
+        where: { userId_postId: { userId, postId } }, // ✅ 복합키 이름 확정
         select: { userId: true, postId: true },
       });
 
@@ -289,6 +321,7 @@ postsRouter.post(
         liked = true;
       }
 
+      // ✅ count는 postLike 모델에서 세는 게 가장 단순/정확
       const likeCount = await tx.postLike.count({ where: { postId } });
 
       return { liked, likeCount };
@@ -298,8 +331,9 @@ postsRouter.post(
   })
 );
 
-
+// -------------------------------------------------------------------
 // DELETE /posts/:id
+// -------------------------------------------------------------------
 postsRouter.delete(
   "/:id",
   requireAuth,
