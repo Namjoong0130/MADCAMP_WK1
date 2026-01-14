@@ -14,8 +14,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontFamily // ✅ 기본 폰트 사용을 위해 필요
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
@@ -52,6 +53,16 @@ fun RegisterScreen(
     var expanded by remember { mutableStateOf(false) }
     val schools = listOf("POSTECH", "KAIST")
 
+    // ✅ 학교별 브랜드 컬러 정의 (로그인 화면과 동일한 로직)
+    val isPostech = school.contains("POSTECH", ignoreCase = true)
+    val isKaist = school.contains("KAIST", ignoreCase = true)
+
+    val brandColor = when {
+        isPostech -> Color(0xFFE0224E)
+        isKaist -> Color(0xFF005EB8)
+        else -> MaterialTheme.colorScheme.primary // 선택 전 기본 색상
+    }
+
     // 약관 다이얼로그 상태
     var showTermsDialog by remember { mutableStateOf(false) }
 
@@ -61,153 +72,195 @@ fun RegisterScreen(
         }
     }
 
-    Scaffold(
-        snackbarHost = {
-            SnackbarHost(hostState = snackbarHostState) { data ->
-                Snackbar(
-                    containerColor = Color(0xFFD32F2F),
-                    contentColor = Color.White,
-                    shape = RoundedCornerShape(12.dp),
-                    snackbarData = data
-                )
-            }
-        },
-        containerColor = Color.White
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(horizontal = 24.dp)
-                .verticalScroll(rememberScrollState()),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Text(
-                text = "회원가입",
-                style = MaterialTheme.typography.headlineLarge,
-                fontFamily = UnivsFontFamily,
-                fontWeight = FontWeight.ExtraBold
-            )
+    // ✅ Box를 사용해 배경 이미지와 컨텐츠를 겹침
+    Box(modifier = Modifier.fillMaxSize()) {
+        // 1. 배경 이미지 (poca.png)
+        Image(
+            painter = painterResource(id = R.drawable.poca),
+            contentDescription = null,
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Fit,
+            alpha = 0.15f // 투명도 설정
+        )
 
-            Spacer(modifier = Modifier.height(32.dp))
-
-            // 학교 선택
-            ExposedDropdownMenuBox(
-                expanded = expanded,
-                onExpandedChange = { expanded = !expanded },
-                modifier = Modifier.fillMaxWidth()
+        Scaffold(
+            snackbarHost = {
+                SnackbarHost(hostState = snackbarHostState) { data ->
+                    Snackbar(
+                        containerColor = Color(0xFFD32F2F),
+                        contentColor = Color.White,
+                        shape = RoundedCornerShape(12.dp),
+                        snackbarData = data
+                    )
+                }
+            },
+            containerColor = Color.Transparent // ✅ 이미지가 비치도록 투명하게 설정
+        ) { paddingValues ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .padding(horizontal = 24.dp)
+                    .verticalScroll(rememberScrollState()),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
             ) {
-                OutlinedTextField(
-                    value = school,
-                    onValueChange = {},
-                    readOnly = true,
-                    label = { Text("소속 학교", fontFamily = UnivsFontFamily) },
-                    leadingIcon = {
-                        if (school.isNotBlank()) {
-                            Image(painter = painterResource(id = if (school == "POSTECH") R.drawable.postech else R.drawable.kaist), contentDescription = null, modifier = Modifier.size(24.dp))
-                        }
-                    },
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                    modifier = Modifier.menuAnchor().fillMaxWidth()
+                Text(
+                    text = "회원가입",
+                    style = MaterialTheme.typography.headlineLarge,
+                    fontFamily = UnivsFontFamily,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = if (school.isNotBlank()) brandColor else Color.Black
                 )
-                ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                    schools.forEach { selectionOption ->
-                        DropdownMenuItem(
-                            text = {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Image(painter = painterResource(id = if (selectionOption == "POSTECH") R.drawable.postech else R.drawable.kaist), contentDescription = null, modifier = Modifier.size(30.dp))
-                                    Spacer(modifier = Modifier.width(12.dp))
-                                    Text(selectionOption, fontFamily = UnivsFontFamily)
-                                }
-                            },
-                            onClick = { onSchoolChange(selectionOption); expanded = false }
+
+                Spacer(modifier = Modifier.height(32.dp))
+
+                // 학교 선택
+                ExposedDropdownMenuBox(
+                    expanded = expanded,
+                    onExpandedChange = { expanded = !expanded },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    OutlinedTextField(
+                        value = school,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("소속 학교", fontFamily = UnivsFontFamily) },
+                        leadingIcon = {
+                            if (school.isNotBlank()) {
+                                Image(painter = painterResource(id = if (isPostech) R.drawable.postech else R.drawable.kaist), contentDescription = null, modifier = Modifier.size(24.dp))
+                            }
+                        },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                        modifier = Modifier.menuAnchor().fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = brandColor,
+                            focusedLabelColor = brandColor
                         )
+                    )
+                    ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                        schools.forEach { selectionOption ->
+                            DropdownMenuItem(
+                                text = {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Image(painter = painterResource(id = if (selectionOption == "POSTECH") R.drawable.postech else R.drawable.kaist), contentDescription = null, modifier = Modifier.size(30.dp))
+                                        Spacer(modifier = Modifier.width(12.dp))
+                                        Text(selectionOption, fontFamily = UnivsFontFamily)
+                                    }
+                                },
+                                onClick = { onSchoolChange(selectionOption); expanded = false }
+                            )
+                        }
                     }
                 }
-            }
 
-            Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
-            OutlinedTextField(value = email, onValueChange = onEmailChange, label = { Text("이메일", fontFamily = UnivsFontFamily) }, modifier = Modifier.fillMaxWidth(), singleLine = true)
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            OutlinedTextField(value = username, onValueChange = onUsernameChange, label = { Text("아이디", fontFamily = UnivsFontFamily) }, modifier = Modifier.fillMaxWidth(), singleLine = true)
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // --- 비밀번호 (기본 폰트 적용하여 점점점 표시) ---
-            OutlinedTextField(
-                value = password,
-                onValueChange = onPasswordChange,
-                label = { Text("비밀번호 (6자 이상)", fontFamily = UnivsFontFamily) },
-                visualTransformation = PasswordVisualTransformation(),
-                textStyle = LocalTextStyle.current.copy(
-                    fontFamily = FontFamily.Default, // ✅ 특수문자 지원을 위해 시스템 폰트 사용
-                    letterSpacing = 2.sp
-                ),
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // --- 비밀번호 확인 (기본 폰트 적용하여 점점점 표시) ---
-            OutlinedTextField(
-                value = confirmPassword,
-                onValueChange = onConfirmPasswordChange,
-                label = { Text("비밀번호 확인", fontFamily = UnivsFontFamily) },
-                visualTransformation = PasswordVisualTransformation(),
-                textStyle = LocalTextStyle.current.copy(
-                    fontFamily = FontFamily.Default, // ✅ 특수문자 지원을 위해 시스템 폰트 사용
-                    letterSpacing = 2.sp
-                ),
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // 이용약관 동의
-            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Checkbox(checked = isAgreed, onCheckedChange = onAgreementChange)
-                Text(
-                    text = "이용약관 및 개인정보 동의",
-                    fontFamily = UnivsFontFamily,
-                    fontSize = 14.sp,
-                    modifier = Modifier.clickable { showTermsDialog = true },
-                    textDecoration = TextDecoration.Underline,
-                    color = MaterialTheme.colorScheme.primary
+                OutlinedTextField(
+                    value = email,
+                    onValueChange = onEmailChange,
+                    label = { Text("이메일", fontFamily = UnivsFontFamily) },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = brandColor, focusedLabelColor = brandColor)
                 )
-                Text(text = " (필수)", fontFamily = UnivsFontFamily, fontSize = 14.sp, color = Color.Gray)
-            }
 
-            Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
-            Button(onClick = onRegisterClick, modifier = Modifier.fillMaxWidth().height(52.dp), shape = RoundedCornerShape(12.dp)) {
-                Text("회원가입", fontFamily = UnivsFontFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-            }
+                OutlinedTextField(
+                    value = username,
+                    onValueChange = onUsernameChange,
+                    label = { Text("아이디", fontFamily = UnivsFontFamily) },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = brandColor, focusedLabelColor = brandColor)
+                )
 
-            Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
-            Row(horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-                Text("이미 계정이 있나요? ", fontFamily = UnivsFontFamily, fontSize = 14.sp, color = Color.Gray)
-                TextButton(onClick = onBackClick) {
-                    Text("로그인", fontFamily = UnivsFontFamily, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                // 비밀번호
+                OutlinedTextField(
+                    value = password,
+                    onValueChange = onPasswordChange,
+                    label = { Text("비밀번호 (6자 이상)", fontFamily = UnivsFontFamily) },
+                    visualTransformation = PasswordVisualTransformation(),
+                    textStyle = LocalTextStyle.current.copy(
+                        fontFamily = FontFamily.Default,
+                        letterSpacing = 2.sp
+                    ),
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = brandColor, focusedLabelColor = brandColor)
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // 비밀번호 확인
+                OutlinedTextField(
+                    value = confirmPassword,
+                    onValueChange = onConfirmPasswordChange,
+                    label = { Text("비밀번호 확인", fontFamily = UnivsFontFamily) },
+                    visualTransformation = PasswordVisualTransformation(),
+                    textStyle = LocalTextStyle.current.copy(
+                        fontFamily = FontFamily.Default,
+                        letterSpacing = 2.sp
+                    ),
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = brandColor, focusedLabelColor = brandColor)
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // 이용약관 동의
+                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(
+                        checked = isAgreed,
+                        onCheckedChange = onAgreementChange,
+                        colors = CheckboxDefaults.colors(checkedColor = brandColor) // ✅ 체크박스 색상
+                    )
+                    Text(
+                        text = "이용약관 및 개인정보 동의",
+                        fontFamily = UnivsFontFamily,
+                        fontSize = 14.sp,
+                        modifier = Modifier.clickable { showTermsDialog = true },
+                        textDecoration = TextDecoration.Underline,
+                        color = brandColor // ✅ 텍스트 색상
+                    )
+                    Text(text = " (필수)", fontFamily = UnivsFontFamily, fontSize = 14.sp, color = Color.Gray)
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Button(
+                    onClick = onRegisterClick,
+                    modifier = Modifier.fillMaxWidth().height(52.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = brandColor) // ✅ 버튼 색상
+                ) {
+                    Text("회원가입", fontFamily = UnivsFontFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Row(horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+                    Text("이미 계정이 있나요? ", fontFamily = UnivsFontFamily, fontSize = 14.sp, color = Color.Gray)
+                    TextButton(onClick = onBackClick) {
+                        Text("로그인", fontFamily = UnivsFontFamily, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = brandColor)
+                    }
                 }
             }
         }
 
         // 약관 다이얼로그
         if (showTermsDialog) {
-            TermsDialog(onDismiss = { showTermsDialog = false })
+            TermsDialog(brandColor = brandColor, onDismiss = { showTermsDialog = false })
         }
     }
 }
 
 @Composable
-fun TermsDialog(onDismiss: () -> Unit) {
+fun TermsDialog(brandColor: Color, onDismiss: () -> Unit) {
     var selectedTab by remember { mutableIntStateOf(0) }
     val tabs = listOf("이용약관", "개인정보방침")
 
@@ -222,7 +275,17 @@ fun TermsDialog(onDismiss: () -> Unit) {
                     Text("서비스 정책 안내", fontFamily = UnivsFontFamily, fontWeight = FontWeight.Black, fontSize = 18.sp)
                 }
 
-                TabRow(selectedTabIndex = selectedTab, containerColor = Color.White, contentColor = MaterialTheme.colorScheme.primary) {
+                TabRow(
+                    selectedTabIndex = selectedTab,
+                    containerColor = Color.White,
+                    contentColor = brandColor,
+                    indicator = { tabPositions ->
+                        TabRowDefaults.Indicator(
+                            Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
+                            color = brandColor // ✅ 탭 밑줄 색상
+                        )
+                    }
+                ) {
                     tabs.forEachIndexed { index, title ->
                         Tab(
                             selected = selectedTab == index,
@@ -239,13 +302,20 @@ fun TermsDialog(onDismiss: () -> Unit) {
                     )
                 }
 
-                Button(onClick = onDismiss, modifier = Modifier.fillMaxWidth().padding(20.dp).height(50.dp), shape = RoundedCornerShape(14.dp)) {
+                Button(
+                    onClick = onDismiss,
+                    modifier = Modifier.fillMaxWidth().padding(20.dp).height(50.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = brandColor) // ✅ 확인 버튼 색상
+                ) {
                     Text("확인", fontFamily = UnivsFontFamily, fontWeight = FontWeight.Bold)
                 }
             }
         }
     }
 }
+
+// ... getServiceTerms() 및 getPrivacyPolicy() 함수는 이전과 동일
 
 private fun getServiceTerms() = """
     [제 1 장 총칙]

@@ -64,6 +64,10 @@ fun DashboardScreen(
     val mySchoolId = AuthManager.getSchoolId()
     val myBrandColor = UiMappings.schoolColor(mySchoolId)
 
+    // ✅ 학교별 배경 테마색 (포스텍: 연한 레드, 카이스트: 연한 블루)
+    val isPostech = mySchoolId.contains("postech", ignoreCase = true)
+    val themeBackgroundColor = if (isPostech) Color(0xFFFFF5F5) else Color(0xFFF0F7FF)
+
     val tagConfigs = listOf(
         TagUIConfig("공지", Icons.Outlined.Campaign, UiMappings.tagColor("공지")),
         TagUIConfig("소통", Icons.Outlined.ChatBubbleOutline, UiMappings.tagColor("소통")),
@@ -77,16 +81,15 @@ fun DashboardScreen(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = onNavigateToWrite,
-                containerColor = myBrandColor,
+                containerColor = myBrandColor, // ✅ 카이스트일 땐 블루 버튼
                 contentColor = Color.White,
                 shape = CircleShape,
-                // ✅ 버튼을 더 아래로 내리기 위해 bottom 패딩을 0dp ~ 4dp 정도로 줄였습니다.
                 modifier = Modifier.padding(bottom = 0.dp, end = 0.dp)
             ) {
                 Icon(Icons.Default.Edit, contentDescription = null)
             }
         },
-        containerColor = Color(0xFFF8F9FA)
+        containerColor = themeBackgroundColor
     ) { padding ->
         PullToRefreshBox(
             isRefreshing = isLoading,
@@ -112,25 +115,32 @@ fun DashboardScreen(
             ) {
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // 검색창
+                // ✅ 학교 테마가 완벽 적용된 검색창
                 OutlinedTextField(
                     value = searchText,
                     onValueChange = onSearchChange,
                     placeholder = { Text("글 제목, 내용 검색", fontFamily = UnivsFontFamily) },
                     modifier = Modifier.fillMaxWidth(),
-                    leadingIcon = { Icon(Icons.Default.Search, null, tint = Color.Gray) },
+                    leadingIcon = {
+                        Icon(
+                            Icons.Default.Search,
+                            null,
+                            tint = myBrandColor.copy(alpha = 0.7f) // ✅ 아이콘 색상 학교 테마 반영
+                        )
+                    },
                     shape = RoundedCornerShape(16.dp),
                     colors = OutlinedTextFieldDefaults.colors(
                         unfocusedContainerColor = Color.White,
                         focusedContainerColor = Color.White,
-                        unfocusedBorderColor = Color.Transparent,
-                        focusedBorderColor = myBrandColor
+                        unfocusedBorderColor = myBrandColor.copy(alpha = 0.2f), // ✅ 테두리 학교 테마
+                        focusedBorderColor = myBrandColor, // ✅ 포커스 시 학교 테마
+                        cursorColor = myBrandColor
                     )
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // 태그 바
+                // 태그 바 (기존 애니메이션 로직 유지)
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -202,7 +212,7 @@ private fun PostItem(post: Post, mySchoolId: String, myBrandColor: Color, onClic
         modifier = Modifier.fillMaxWidth().clickable { onClick() },
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        border = BorderStroke(1.dp, myBrandColor.copy(alpha = 0.14f)),
+        border = BorderStroke(1.dp, myBrandColor.copy(alpha = 0.15f)), // ✅ 카드 테두리 학교색 반영
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Row(modifier = Modifier.padding(16.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
