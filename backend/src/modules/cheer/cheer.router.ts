@@ -6,7 +6,7 @@ import { getActiveMatch, postCheerTap } from "./cheer.controller.js";
 export const cheerRouter = Router();
 
 // GET /cheer/active-match
-cheerRouter.get("/cheer/active-match", asyncHandler(getActiveMatch));
+cheerRouter.get("/active-match", asyncHandler(getActiveMatch));
 
 // POST /cheer/taps  (인증 필요)
-cheerRouter.post("/cheer/taps", requireAuth, asyncHandler(postCheerTap));
+cheerRouter.post("/taps", requireAuth, asyncHandler(postCheerTap));

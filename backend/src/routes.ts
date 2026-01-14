@@ -46,5 +46,5 @@ routes.use("/share-links", shareLinksRouter);
 routes.use("/tags", tagsRouter);
 routes.use(authRouter);
 routes.use(commentsRouter);
-routes.use(cheerRouter);
+routes.use("/cheer", cheerRouter);
 
