@@ -53,6 +53,16 @@ const IDS = {
     KAIST_1: "seed_cheer_kaist_1",
     POSTECH_1: "seed_cheer_postech_1",
   },
+
+  // ✅ Cheer(배틀) seed 고정 ID
+  cheerTeams: {
+    KAIST: "seed_cheer_team_kaist",
+    POSTECH: "seed_cheer_team_postech",
+  },
+  cheerMatches: {
+    ACTIVE: "seed_cheer_match_active",
+  },
+
   schedules: {
     OPENING: "seed_schedule_opening",
   },
@@ -115,6 +125,17 @@ async function main() {
 
   await prisma.shareLink
     .deleteMany({ where: { slug: { in: Object.values(IDS.shareLinks) } } })
+    .catch(() => {});
+
+  // ✅ Cheer(배틀) 관련 seed 정리(탭 -> 매치 -> 팀 순서)
+  await prisma.cheerTap
+    .deleteMany({ where: { matchId: { in: Object.values(IDS.cheerMatches) } } })
+    .catch(() => {});
+  await prisma.cheerMatch
+    .deleteMany({ where: { id: { in: Object.values(IDS.cheerMatches) } } })
+    .catch(() => {});
+  await prisma.cheerTeam
+    .deleteMany({ where: { id: { in: Object.values(IDS.cheerTeams) } } })
     .catch(() => {});
 
   await prisma.post
@@ -259,6 +280,57 @@ async function main() {
       },
     ],
     skipDuplicates: true,
+  });
+
+  // -----------------------------
+  // ✅ 5.5) Cheer(배틀) Team / Active Match
+  // -----------------------------
+  // 1) 팀 2개 upsert
+  await prisma.cheerTeam.upsert({
+    where: { id: IDS.cheerTeams.POSTECH },
+    update: { name: "POSTECH", logoUrl: null },
+    create: { id: IDS.cheerTeams.POSTECH, name: "POSTECH", logoUrl: null },
+  });
+
+  await prisma.cheerTeam.upsert({
+    where: { id: IDS.cheerTeams.KAIST },
+    update: { name: "KAIST", logoUrl: null },
+    create: { id: IDS.cheerTeams.KAIST, name: "KAIST", logoUrl: null },
+  });
+
+  // 2) 기존 활성 매치가 여러 개 있으면 전부 비활성화 (옵션이지만 추천)
+  await prisma.cheerMatch
+    .updateMany({
+      where: { isActive: true },
+      data: { isActive: false },
+    })
+    .catch(() => {});
+
+  // 3) 활성 매치 1개 upsert (항상 isActive=true로 강제)
+  const now = new Date();
+  const ends = new Date(now.getTime() + 1000 * 60 * 60 * 24 * 7); // +7일
+
+  await prisma.cheerMatch.upsert({
+    where: { id: IDS.cheerMatches.ACTIVE },
+    update: {
+      title: "POSTECH vs KAIST 응원전",
+      isActive: true,
+      startsAt: now,
+      endsAt: ends,
+      homeTeamId: IDS.cheerTeams.POSTECH,
+      awayTeamId: IDS.cheerTeams.KAIST,
+      deletedAt: null,
+    },
+    create: {
+      id: IDS.cheerMatches.ACTIVE,
+      title: "POSTECH vs KAIST 응원전",
+      isActive: true,
+      startsAt: now,
+      endsAt: ends,
+      homeTeamId: IDS.cheerTeams.POSTECH,
+      awayTeamId: IDS.cheerTeams.KAIST,
+      deletedAt: null,
+    },
   });
 
   // -----------------------------
