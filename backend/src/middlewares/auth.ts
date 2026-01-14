@@ -59,7 +59,7 @@ export async function optionalAuth(req: Request, _res: Response, next: NextFunct
   } catch {
     // 조회 API에서는 인증 실패를 강제 에러로 만들지 않음
   }
-  return next();
+  next();
 }
 
 export function requireAdmin(req: Request, _res: Response, next: NextFunction) {

@@ -18,33 +18,32 @@ import { deviceTokensRouter } from "./modules/deviceTokens/deviceTokens.router.j
 import { notificationsRouter } from "./modules/notifications/notifications.router.js";
 import { shareLinksRouter } from "./modules/shareLinks/shareLinks.router.js";
 
-
 export const routes = Router();
 
-// Swagger UI (/docs)
+// [1] Swagger UI
 const openapiPath = path.resolve(process.cwd(), "docs", "openapi.yaml");
 if (fs.existsSync(openapiPath)) {
   const spec = parse(fs.readFileSync(openapiPath, "utf8"));
   routes.use("/docs", swaggerUi.serve, swaggerUi.setup(spec));
 }
 
-// Modules
+// [2] Modules Mapping
 routes.use("/auth", authRouter);
 routes.use("/me", meRouter);
 routes.use("/schools", schoolsRouter);
 routes.use("/schedules", schedulesRouter);
-routes.use("/info-categories", infoRouter); // GET /info-categories
-routes.use("/infos", infoRouter);           // /infos...
+routes.use("/info-categories", infoRouter);
+routes.use("/infos", infoRouter);
 routes.use("/tags", tagsRouter);
-routes.use("/cheer-methods", cheerRouter);
-routes.use("/posts", postsRouter);          // /posts + /posts/:id/like
-routes.use("/", commentsRouter);            // /posts/:id/comments, /comments/:id
+
+// ✅ 핵심 수정: 안드로이드에서 요청하는 /api/cheer 경로를 여기로 연결합니다.
+routes.use("/cheer", cheerRouter); 
+
+routes.use("/posts", postsRouter);
 routes.use("/media", mediaRouter);
 routes.use("/device-tokens", deviceTokensRouter);
 routes.use("/notifications", notificationsRouter);
 routes.use("/share-links", shareLinksRouter);
-routes.use("/tags", tagsRouter);
-routes.use(authRouter);
-routes.use(commentsRouter);
-routes.use("/cheer", cheerRouter);
 
+// [3] Root Path Modules
+routes.use("/", commentsRouter);
